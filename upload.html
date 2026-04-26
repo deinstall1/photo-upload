@@ -1,0 +1,463 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Фото → Supabase</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+  :root {
+    --bg: #0a0a0a;
+    --surface: #141414;
+    --surface2: #1c1c1c;
+    --border: #2a2a2a;
+    --accent: #e8ff6b;
+    --accent-dim: rgba(232,255,107,0.12);
+    --text: #f0f0f0;
+    --text-muted: #666;
+    --radius: 16px;
+    --green: #4ade80;
+    --red: #f87171;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', sans-serif;
+    min-height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 24px 16px 40px;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  header {
+    width: 100%;
+    max-width: 480px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 32px;
+  }
+  .logo {
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: -0.3px;
+    color: var(--text);
+  }
+  .logo span { color: var(--accent); }
+  .bucket-badge {
+    font-size: 11px;
+    color: var(--text-muted);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    padding: 4px 10px;
+    border-radius: 100px;
+  }
+
+  .drop-zone {
+    width: 100%;
+    max-width: 480px;
+    aspect-ratio: 4/3;
+    border: 1.5px dashed var(--border);
+    border-radius: var(--radius);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    cursor: pointer;
+    position: relative;
+    overflow: hidden;
+    transition: border-color 0.2s, background 0.2s;
+    background: var(--surface);
+    -webkit-user-select: none;
+    user-select: none;
+  }
+  .drop-zone:active { transform: scale(0.99); }
+  .drop-zone.dragging {
+    border-color: var(--accent);
+    background: var(--accent-dim);
+  }
+  .drop-zone .icon {
+    width: 56px;
+    height: 56px;
+    background: var(--surface2);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .drop-zone .icon svg { width: 24px; height: 24px; stroke: var(--accent); fill: none; stroke-width: 1.8; }
+  .drop-zone .label { font-size: 16px; font-weight: 500; color: var(--text); }
+  .drop-zone .sublabel { font-size: 13px; color: var(--text-muted); }
+  #file-input { display: none; }
+
+  .or-bar {
+    width: 100%;
+    max-width: 480px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin: 20px 0;
+    color: var(--text-muted);
+    font-size: 13px;
+  }
+  .or-bar::before, .or-bar::after {
+    content: '';
+    flex: 1;
+    height: 1px;
+    background: var(--border);
+  }
+
+  .camera-btn {
+    width: 100%;
+    max-width: 480px;
+    padding: 16px;
+    background: var(--accent);
+    color: #0a0a0a;
+    border: none;
+    border-radius: var(--radius);
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    transition: opacity 0.15s, transform 0.1s;
+  }
+  .camera-btn:active { opacity: 0.85; transform: scale(0.99); }
+  .camera-btn svg { width: 18px; height: 18px; stroke: #0a0a0a; fill: none; stroke-width: 2; }
+  #camera-input { display: none; }
+
+  .queue {
+    width: 100%;
+    max-width: 480px;
+    margin-top: 28px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .queue-header {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    padding: 0 4px;
+  }
+
+  .item {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 12px;
+    transition: border-color 0.2s;
+  }
+  .item.done { border-color: rgba(74,222,128,0.3); }
+  .item.error { border-color: rgba(248,113,113,0.3); }
+  .item.uploading { border-color: rgba(232,255,107,0.3); }
+
+  .thumb {
+    width: 44px;
+    height: 44px;
+    border-radius: 8px;
+    object-fit: cover;
+    flex-shrink: 0;
+    background: var(--surface2);
+  }
+  .item-info { flex: 1; min-width: 0; }
+  .item-name {
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    color: var(--text);
+  }
+  .item-size {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-top: 2px;
+  }
+  .item-status {
+    flex-shrink: 0;
+    font-size: 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .spinner {
+    width: 16px; height: 16px;
+    border: 2px solid var(--accent-dim);
+    border-top-color: var(--accent);
+    border-radius: 50%;
+    animation: spin 0.7s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  .dot-done { width: 8px; height: 8px; border-radius: 50%; background: var(--green); }
+  .dot-error { width: 8px; height: 8px; border-radius: 50%; background: var(--red); }
+
+  .progress-bar {
+    position: absolute;
+    bottom: 0; left: 0;
+    height: 2px;
+    background: var(--accent);
+    transition: width 0.3s;
+  }
+
+  .stats {
+    width: 100%;
+    max-width: 480px;
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 10px;
+    margin-top: 24px;
+  }
+  .stat {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 14px 12px;
+    text-align: center;
+  }
+  .stat-num { font-size: 22px; font-weight: 600; color: var(--text); }
+  .stat-label { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  .stat-num.green { color: var(--green); }
+  .stat-num.red { color: var(--red); }
+
+  .clear-btn {
+    width: 100%;
+    max-width: 480px;
+    margin-top: 16px;
+    padding: 13px;
+    background: transparent;
+    color: var(--text-muted);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: 14px;
+    cursor: pointer;
+    transition: color 0.2s, border-color 0.2s;
+  }
+  .clear-btn:hover { color: var(--text); border-color: #444; }
+
+  .toast {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%) translateY(80px);
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 13px;
+    padding: 10px 18px;
+    border-radius: 100px;
+    transition: transform 0.3s cubic-bezier(0.34,1.56,0.64,1);
+    white-space: nowrap;
+    z-index: 999;
+    pointer-events: none;
+  }
+  .toast.show { transform: translateX(-50%) translateY(0); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">photo<span>.</span>upload</div>
+  <div class="bucket-badge">bucket: photos</div>
+</header>
+
+<div class="drop-zone" id="drop-zone" onclick="document.getElementById('file-input').click()">
+  <div class="icon">
+    <svg viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4M17 8l-5-5-5 5M12 3v12"/></svg>
+  </div>
+  <div class="label">Выбрать фото</div>
+  <div class="sublabel">HEIC, JPG, PNG, WEBP · до 50 МБ</div>
+</div>
+<input type="file" id="file-input" accept="image/jpeg,image/png,image/heic,image/heif,image/webp" multiple>
+
+<div class="or-bar">или</div>
+
+<button class="camera-btn" onclick="document.getElementById('camera-input').click()">
+  <svg viewBox="0 0 24 24"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+  Снять на камеру
+</button>
+<input type="file" id="camera-input" accept="image/*" capture="environment">
+
+<div class="stats" id="stats" style="display:none">
+  <div class="stat">
+    <div class="stat-num" id="s-total">0</div>
+    <div class="stat-label">Всего</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num green" id="s-done">0</div>
+    <div class="stat-label">Готово</div>
+  </div>
+  <div class="stat">
+    <div class="stat-num red" id="s-err">0</div>
+    <div class="stat-label">Ошибок</div>
+  </div>
+</div>
+
+<div class="queue" id="queue" style="display:none">
+  <div class="queue-header">Очередь загрузки</div>
+</div>
+
+<button class="clear-btn" id="clear-btn" style="display:none" onclick="clearAll()">Очистить список</button>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = 'https://fnwcuhwtforhmhybvscm.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZud2N1aHd0Zm9yaG1oeWJ2c2NtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3Mjg0MzcsImV4cCI6MjA5MDMwNDQzN30.96-koYH8PvMai0sefi19emXskBYBPYJ-I9IFKWK7N6M';
+const BUCKET = 'photos';
+
+const { createClient } = supabase;
+const sb = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+let items = [];
+let statTotal = 0, statDone = 0, statErr = 0;
+
+const drop = document.getElementById('drop-zone');
+drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('dragging'); });
+drop.addEventListener('dragleave', () => drop.classList.remove('dragging'));
+drop.addEventListener('drop', e => {
+  e.preventDefault();
+  drop.classList.remove('dragging');
+  handleFiles([...e.dataTransfer.files]);
+});
+document.getElementById('file-input').addEventListener('change', e => handleFiles([...e.target.files]));
+document.getElementById('camera-input').addEventListener('change', e => handleFiles([...e.target.files]));
+
+function formatBytes(b) {
+  if (b < 1024) return b + ' B';
+  if (b < 1024 * 1024) return (b / 1024).toFixed(1) + ' KB';
+  return (b / 1024 / 1024).toFixed(1) + ' MB';
+}
+
+function showToast(msg, duration = 2500) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), duration);
+}
+
+function handleFiles(files) {
+  if (!files.length) return;
+  const queue = document.getElementById('queue');
+  const stats = document.getElementById('stats');
+  const clearBtn = document.getElementById('clear-btn');
+  queue.style.display = 'flex';
+  stats.style.display = 'grid';
+  clearBtn.style.display = 'block';
+
+  files.forEach(file => {
+    if (!file.type.startsWith('image/') && !file.name.match(/\.heic$/i)) return;
+    const id = Date.now() + Math.random();
+    const reader = new FileReader();
+    reader.onload = ev => {
+      const item = { id, file, thumb: ev.target.result, status: 'pending', el: null };
+      items.push(item);
+      statTotal++;
+      updateStats();
+      const el = createItemEl(item);
+      item.el = el;
+      queue.appendChild(el);
+      uploadFile(item);
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+function createItemEl(item) {
+  const div = document.createElement('div');
+  div.className = 'item';
+  div.innerHTML = `
+    <img class="thumb" src="${item.thumb}">
+    <div class="item-info">
+      <div class="item-name">${item.file.name}</div>
+      <div class="item-size">${formatBytes(item.file.size)}</div>
+    </div>
+    <div class="item-status" id="status-${item.id}">
+      <div class="spinner"></div>
+    </div>
+  `;
+  return div;
+}
+
+function updateItemStatus(item, status) {
+  item.status = status;
+  const statusEl = document.getElementById('status-' + item.id);
+  if (!statusEl) return;
+  if (status === 'done') {
+    item.el.classList.add('done');
+    statusEl.innerHTML = '<div class="dot-done"></div>';
+  } else if (status === 'error') {
+    item.el.classList.add('error');
+    statusEl.innerHTML = '<div class="dot-error"></div>';
+  } else if (status === 'uploading') {
+    item.el.classList.add('uploading');
+    statusEl.innerHTML = '<div class="spinner"></div>';
+  }
+}
+
+function updateStats() {
+  document.getElementById('s-total').textContent = statTotal;
+  document.getElementById('s-done').textContent = statDone;
+  document.getElementById('s-err').textContent = statErr;
+}
+
+async function uploadFile(item) {
+  updateItemStatus(item, 'uploading');
+
+  const ts = new Date().toISOString().replace(/[:.]/g, '-');
+  const ext = item.file.name.split('.').pop();
+  const path = `${ts}_${Math.random().toString(36).slice(2)}.${ext}`;
+
+  const { error } = await sb.storage
+    .from(BUCKET)
+    .upload(path, item.file, {
+      contentType: item.file.type || 'image/jpeg',
+      upsert: false
+    });
+
+  if (error) {
+    statErr++;
+    updateStats();
+    updateItemStatus(item, 'error');
+    console.error(error);
+    if (error.message && error.message.includes('Bucket not found')) {
+      showToast('Бакет не найден — создайте его в Supabase Storage', 4000);
+    } else {
+      showToast('Ошибка: ' + error.message, 3500);
+    }
+  } else {
+    statDone++;
+    updateStats();
+    updateItemStatus(item, 'done');
+    if (statDone === 1) showToast('Фото загружено успешно');
+    else showToast(`${statDone} фото загружено`);
+  }
+}
+
+function clearAll() {
+  items = [];
+  statTotal = 0; statDone = 0; statErr = 0;
+  updateStats();
+  const queue = document.getElementById('queue');
+  [...queue.children].filter(c => !c.classList.contains('queue-header')).forEach(c => c.remove());
+  document.getElementById('queue').style.display = 'none';
+  document.getElementById('stats').style.display = 'none';
+  document.getElementById('clear-btn').style.display = 'none';
+  document.getElementById('file-input').value = '';
+  document.getElementById('camera-input').value = '';
+}
+</script>
+</body>
+</html>
