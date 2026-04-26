@@ -6,57 +6,95 @@
 <title>Галерея фото</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-:root{--bg:#0a0a0a;--sf:#141414;--sf2:#1c1c1c;--bd:#2a2a2a;--ac:#e8ff6b;--tx:#f0f0f0;--mt:#666;--r:12px}
+:root{--bg:#0a0a0a;--sf:#141414;--sf2:#1c1c1c;--bd:#2a2a2a;--ac:#e8ff6b;--tx:#f0f0f0;--mt:#666;--r:12px;--rd:#f87171;--gr:#4ade80}
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--tx);font-family:-apple-system,BlinkMacSystemFont,sans-serif;min-height:100dvh;padding:24px 16px 48px}
 header{display:flex;justify-content:space-between;align-items:center;max-width:1200px;margin:0 auto 20px;flex-wrap:wrap;gap:12px}
 .logo{font-size:15px;font-weight:600}.logo span{color:var(--ac)}
-.upload-link{font-size:12px;color:var(--ac);text-decoration:none;border:1px solid var(--ac);padding:4px 12px;border-radius:100px;opacity:.8}
+.header-right{display:flex;gap:8px;align-items:center}
+.upload-link{font-size:12px;color:var(--ac);text-decoration:none;border:1px solid var(--ac);padding:5px 12px;border-radius:100px;opacity:.8}
 .upload-link:hover{opacity:1}
-.filters{max-width:1200px;margin:0 auto 20px;display:flex;gap:8px}
-.filter-btn{padding:6px 14px;border-radius:100px;border:1px solid var(--bd);background:transparent;color:var(--mt);font-size:12px;cursor:pointer;transition:all .2s}
-.filter-btn.active{background:var(--adim,rgba(232,255,107,.1));border-color:var(--ac);color:var(--ac)}
+.delete-all-btn{font-size:12px;color:var(--rd);border:1px solid rgba(248,113,113,.3);background:transparent;padding:5px 12px;border-radius:100px;cursor:pointer;transition:all .2s}
+.delete-all-btn:hover{background:rgba(248,113,113,.1);border-color:var(--rd)}
+
+.toolbar{max-width:1200px;margin:0 auto 20px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.filter-btn{padding:5px 14px;border-radius:100px;border:1px solid var(--bd);background:transparent;color:var(--mt);font-size:12px;cursor:pointer;transition:all .2s}
+.filter-btn.active{background:rgba(232,255,107,.1);border-color:var(--ac);color:var(--ac)}
+.count{margin-left:auto;background:var(--sf2);border:1px solid var(--bd);padding:4px 12px;border-radius:100px;font-size:12px;color:var(--mt)}
+
+.storage-bar{max-width:1200px;margin:0 auto 20px;display:flex;align-items:center;gap:10px;font-size:12px;color:var(--mt)}
+.bar-track{flex:1;height:4px;background:var(--sf2);border-radius:2px;overflow:hidden}
+.bar-fill{height:100%;background:var(--ac);border-radius:2px;transition:width .5s}
+
 .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;max-width:1200px;margin:0 auto}
-.card{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);overflow:hidden;cursor:pointer;transition:border-color .2s,transform .15s}
-.card:hover{border-color:#555;transform:scale(1.02)}
-.card img{width:100%;aspect-ratio:1;object-fit:cover;display:block;background:var(--sf2)}
-.card-info{padding:8px 10px}
-.card-tag{display:inline-block;font-size:10px;padding:2px 6px;border-radius:4px;margin-bottom:4px;font-weight:600}
-.tag-compressed{background:rgba(232,255,107,.15);color:var(--ac)}
-.tag-original{background:rgba(74,222,128,.1);color:#4ade80}
-.tag-other{background:rgba(255,255,255,.05);color:var(--mt)}
+
+.card{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);overflow:hidden;position:relative;transition:border-color .2s}
+.card:hover{border-color:#444}
+.card:hover .del-btn{opacity:1}
+.card img{width:100%;aspect-ratio:1;object-fit:cover;display:block;background:var(--sf2);cursor:pointer}
+.card-info{padding:8px 10px;display:flex;align-items:flex-start;justify-content:space-between;gap:6px}
+.card-meta{flex:1;min-width:0}
+.card-tag{display:inline-block;font-size:10px;padding:2px 6px;border-radius:4px;margin-bottom:3px;font-weight:600}
+.tag-c{background:rgba(232,255,107,.15);color:var(--ac)}
+.tag-o{background:rgba(74,222,128,.1);color:var(--gr)}
+.tag-x{background:rgba(255,255,255,.05);color:var(--mt)}
 .card-size{font-size:11px;color:var(--mt)}
 .card-date{font-size:11px;color:var(--mt);margin-top:1px}
-.empty{text-align:center;padding:80px 20px;color:var(--mt)}
+
+/* Кнопка удаления на карточке */
+.del-btn{position:absolute;top:6px;right:6px;width:28px;height:28px;border-radius:50%;background:rgba(0,0,0,.7);border:1px solid rgba(248,113,113,.4);color:var(--rd);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s,background .15s;line-height:1}
+.del-btn:hover{background:rgba(248,113,113,.2)}
+
+.empty{text-align:center;padding:80px 20px;color:var(--mt);max-width:1200px;margin:0 auto}
 .empty h2{font-size:18px;font-weight:500;margin-bottom:8px;color:var(--tx)}
 .loading{text-align:center;padding:80px 20px;color:var(--mt);max-width:1200px;margin:0 auto}
 .spin{width:32px;height:32px;border:2px solid #2a2a2a;border-top-color:var(--ac);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 16px}
 @keyframes spin{to{transform:rotate(360deg)}}
+
+/* Лайтбокс */
 .lightbox{position:fixed;inset:0;background:rgba(0,0,0,.93);display:flex;align-items:center;justify-content:center;z-index:999;padding:20px}
 .lightbox.hidden{display:none}
-.lightbox img{max-width:100%;max-height:90dvh;border-radius:8px;object-fit:contain}
+.lb-img-wrap{position:relative;max-width:100%;max-height:90dvh}
+.lightbox img{max-width:100%;max-height:90dvh;border-radius:8px;object-fit:contain;display:block}
 .lb-close{position:fixed;top:16px;right:20px;font-size:32px;color:#fff;cursor:pointer;opacity:.6;background:none;border:none;line-height:1;padding:4px}
 .lb-close:hover{opacity:1}
+.lb-del{position:fixed;top:16px;right:64px;font-size:13px;color:var(--rd);background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.3);padding:6px 14px;border-radius:100px;cursor:pointer;transition:background .2s}
+.lb-del:hover{background:rgba(248,113,113,.2)}
 .lb-info{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);font-size:12px;color:rgba(255,255,255,.45);white-space:nowrap;text-align:center}
-.count{background:var(--sf2);border:1px solid var(--bd);padding:4px 12px;border-radius:100px;font-size:12px;color:var(--mt)}
-.storage-bar{max-width:1200px;margin:0 auto 20px;display:flex;align-items:center;gap:10px;font-size:12px;color:var(--mt)}
-.bar-track{flex:1;height:4px;background:var(--sf2);border-radius:2px;overflow:hidden}
-.bar-fill{height:100%;background:var(--ac);border-radius:2px;transition:width .5s}
+
+/* Модальное подтверждение */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:1000;padding:20px}
+.modal-overlay.hidden{display:none}
+.modal{background:var(--sf);border:1px solid var(--bd);border-radius:16px;padding:24px;max-width:360px;width:100%;text-align:center}
+.modal h3{font-size:16px;font-weight:600;margin-bottom:8px}
+.modal p{font-size:13px;color:var(--mt);margin-bottom:20px;line-height:1.5}
+.modal-btns{display:flex;gap:10px}
+.modal-cancel{flex:1;padding:11px;border:1px solid var(--bd);background:transparent;color:var(--mt);border-radius:10px;font-size:14px;cursor:pointer}
+.modal-cancel:hover{color:var(--tx);border-color:#555}
+.modal-confirm{flex:1;padding:11px;border:none;background:rgba(248,113,113,.15);color:var(--rd);border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;border:1px solid rgba(248,113,113,.3)}
+.modal-confirm:hover{background:rgba(248,113,113,.25)}
+.modal-spin{width:20px;height:20px;border:2px solid rgba(248,113,113,.2);border-top-color:var(--rd);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px}
+
+/* Тост */
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--sf2);border:1px solid var(--bd);color:var(--tx);font-size:13px;padding:10px 18px;border-radius:100px;transition:transform .3s cubic-bezier(.34,1.56,.64,1);white-space:nowrap;z-index:1001;pointer-events:none}
+.toast.show{transform:translateX(-50%) translateY(0)}
 </style>
 </head>
 <body>
+
 <header>
   <div class="logo">photo<span>.</span>gallery</div>
-  <div style="display:flex;gap:10px;align-items:center">
-    <span class="count" id="count">...</span>
+  <div class="header-right">
+    <button class="delete-all-btn" onclick="confirmDeleteAll()">🗑 Очистить всё</button>
     <a href="index.html" class="upload-link">+ загрузить</a>
   </div>
 </header>
 
-<div class="filters">
-  <button class="filter-btn active" onclick="setFilter('all')">Все</button>
-  <button class="filter-btn" onclick="setFilter('compressed')">⚡ Сжатые</button>
-  <button class="filter-btn" onclick="setFilter('original')">📷 Оригиналы</button>
+<div class="toolbar">
+  <button class="filter-btn active" onclick="setFilter('all',this)">Все</button>
+  <button class="filter-btn" onclick="setFilter('compressed',this)">⚡ Сжатые</button>
+  <button class="filter-btn" onclick="setFilter('original',this)">📷 Оригиналы</button>
+  <span class="count" id="count">...</span>
 </div>
 
 <div class="storage-bar" id="storage-bar" style="display:none">
@@ -67,11 +105,28 @@ header{display:flex;justify-content:space-between;align-items:center;max-width:1
 
 <div id="root" class="loading"><div class="spin"></div>Загружаем фото...</div>
 
+<!-- Лайтбокс -->
 <div class="lightbox hidden" id="lb">
   <button class="lb-close" onclick="closeLb()">×</button>
-  <img id="lb-img" src="" alt="">
+  <button class="lb-del" id="lb-del-btn" onclick="deleteCurrent()">🗑 Удалить</button>
+  <div class="lb-img-wrap"><img id="lb-img" src="" alt=""></div>
   <div class="lb-info" id="lb-info"></div>
 </div>
+
+<!-- Модалка подтверждения -->
+<div class="modal-overlay hidden" id="modal">
+  <div class="modal">
+    <div class="modal-spin" id="modal-spin" style="display:none"></div>
+    <h3 id="modal-title">Удалить все фото?</h3>
+    <p id="modal-desc">Это действие нельзя отменить. Все фотографии будут удалены навсегда.</p>
+    <div class="modal-btns" id="modal-btns">
+      <button class="modal-cancel" onclick="closeModal()">Отмена</button>
+      <button class="modal-confirm" id="modal-ok">Удалить</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
 
 <script>
 const sb = supabase.createClient(
@@ -81,127 +136,206 @@ const sb = supabase.createClient(
 
 let allPhotos = [];
 let currentFilter = 'all';
+let lbCurrent = null; // текущее фото в лайтбоксе
 
-function fmt(b) {
-  if (!b) return '';
-  b = +b;
-  return b < 1024 ? b + ' B' : b < 1048576 ? (b/1024).toFixed(1) + ' KB' : (b/1048576).toFixed(1) + ' MB';
+// ── Утилиты ────────────────────────────────────────────
+function fmt(b){if(!b)return'';b=+b;return b<1024?b+' B':b<1048576?(b/1024).toFixed(1)+' KB':(b/1048576).toFixed(1)+' MB'}
+function fmtDate(s){return new Date(s).toLocaleDateString('ru-RU',{day:'numeric',month:'short'})}
+function getFolder(f){if(f._prefix==='compressed')return'compressed';if(f._prefix==='original')return'original';return'other'}
+function getPath(f){return f._prefix?f._prefix+'/'+f.name:f.name}
+
+function toast(m,d=2500){
+  const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),d);
 }
-function fmtDate(s) {
-  return new Date(s).toLocaleDateString('ru-RU', {day:'numeric', month:'short'});
-}
 
-// Листаем папку рекурсивно
-async function listFolder(prefix) {
-  const { data, error } = await sb.storage.from('photos').list(prefix, {
-    limit: 1000,
-    sortBy: { column: 'created_at', order: 'desc' }
-  });
-  if (error || !data) return [];
-
-  let files = [];
-  for (const item of data) {
-    if (item.id === null) {
-      // это папка — листаем рекурсивно
-      const sub = await listFolder(prefix ? prefix + '/' + item.name : item.name);
-      files = files.concat(sub);
+// ── Загрузка данных ────────────────────────────────────
+async function listFolder(prefix){
+  const{data,error}=await sb.storage.from('photos').list(prefix,{limit:1000,sortBy:{column:'created_at',order:'desc'}});
+  if(error||!data)return[];
+  let files=[];
+  for(const item of data){
+    if(item.id===null){
+      const sub=await listFolder(prefix?prefix+'/'+item.name:item.name);
+      files=files.concat(sub);
     } else {
-      // это файл
-      files.push({ ...item, _prefix: prefix });
+      files.push({...item,_prefix:prefix});
     }
   }
   return files;
 }
 
-function getFolder(f) {
-  if (f._prefix === 'compressed') return 'compressed';
-  if (f._prefix === 'original') return 'original';
-  return 'other';
+async function load(){
+  const root=document.getElementById('root');
+  const files=await listFolder('');
+  allPhotos=files.filter(f=>f.name&&f.name.match(/\.(jpg|jpeg|png|webp|heic|heif)$/i));
+  allPhotos.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
+  updateStorageBar();
+  render();
 }
 
-function getPath(f) {
-  return f._prefix ? f._prefix + '/' + f.name : f.name;
-}
-
-async function load() {
-  const root = document.getElementById('root');
-  const files = await listFolder('');
-
-  allPhotos = files.filter(f => f.name && f.name.match(/\.(jpg|jpeg|png|webp|heic|heif)$/i));
-  // Сортируем по дате
-  allPhotos.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-
-  // Storage bar
-  let totalBytes = 0;
-  allPhotos.forEach(f => { if (f.metadata && f.metadata.size) totalBytes += +f.metadata.size; });
-  if (totalBytes > 0) {
-    document.getElementById('storage-bar').style.display = 'flex';
-    document.getElementById('storage-used').textContent = fmt(totalBytes) + ' использовано';
-    const pct = Math.min((totalBytes / (1024*1024*1024)) * 100, 100);
-    document.getElementById('bar-fill').style.width = Math.max(pct, 0.3) + '%';
+function updateStorageBar(){
+  let total=0;
+  allPhotos.forEach(f=>{if(f.metadata&&f.metadata.size)total+=+f.metadata.size});
+  if(total>0){
+    document.getElementById('storage-bar').style.display='flex';
+    document.getElementById('storage-used').textContent=fmt(total)+' использовано';
+    document.getElementById('bar-fill').style.width=Math.max((total/(1024*1024*1024))*100,0.3)+'%';
   }
+}
 
+// ── Фильтры и рендер ──────────────────────────────────
+function setFilter(f,btn){
+  currentFilter=f;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  if(btn)btn.classList.add('active');
   render();
 }
 
-function setFilter(f) {
-  currentFilter = f;
-  document.querySelectorAll('.filter-btn').forEach((btn, i) => {
-    btn.classList.toggle('active', ['all','compressed','original'][i] === f);
-  });
-  render();
-}
+function render(){
+  const root=document.getElementById('root');
+  const photos=currentFilter==='all'?allPhotos:allPhotos.filter(f=>getFolder(f)===currentFilter);
+  document.getElementById('count').textContent=photos.length+' фото';
 
-function render() {
-  const root = document.getElementById('root');
-  const photos = currentFilter === 'all' ? allPhotos :
-    allPhotos.filter(f => getFolder(f) === currentFilter);
-
-  document.getElementById('count').textContent = photos.length + ' фото';
-
-  if (!photos.length) {
-    root.className = 'empty';
-    root.innerHTML = '<h2>Нет фото</h2><p>В этой категории пока ничего нет</p>';
+  if(!photos.length){
+    root.className='empty';
+    root.innerHTML='<h2>Нет фото</h2><p>В этой категории пока ничего нет</p>';
     return;
   }
 
-  root.className = 'grid';
-  root.innerHTML = '';
+  root.className='grid';
+  root.innerHTML='';
 
-  photos.forEach(f => {
-    const path = getPath(f);
-    const url = sb.storage.from('photos').getPublicUrl(path).data.publicUrl;
-    const folder = getFolder(f);
-    const tagClass = folder === 'compressed' ? 'tag-compressed' : folder === 'original' ? 'tag-original' : 'tag-other';
-    const tagLabel = folder === 'compressed' ? '⚡ сжатое' : folder === 'original' ? '📷 оригинал' : '📁 фото';
+  photos.forEach(f=>{
+    const path=getPath(f);
+    const url=sb.storage.from('photos').getPublicUrl(path).data.publicUrl;
+    const folder=getFolder(f);
+    const tagClass=folder==='compressed'?'tag-c':folder==='original'?'tag-o':'tag-x';
+    const tagLabel=folder==='compressed'?'⚡ сжатое':folder==='original'?'📷 оригинал':'📁';
 
-    const card = document.createElement('div');
-    card.className = 'card';
-    card.onclick = () => openLb(url, f, folder);
-    card.innerHTML =
-      '<img src="' + url + '" loading="lazy" alt="">' +
-      '<div class="card-info">' +
-      '<span class="card-tag ' + tagClass + '">' + tagLabel + '</span>' +
-      '<div class="card-size">' + fmt(f.metadata && f.metadata.size) + '</div>' +
-      '<div class="card-date">' + fmtDate(f.created_at) + '</div>' +
+    const card=document.createElement('div');
+    card.className='card';
+    card.dataset.path=path;
+
+    card.innerHTML=
+      '<button class="del-btn" title="Удалить" onclick="confirmDeleteOne(\''+path+'\',event)">✕</button>'+
+      '<img src="'+url+'" loading="lazy" alt="" onclick="openLb(\''+url+'\',\''+path+'\','+JSON.stringify(f).replace(/'/g,"&#39;")+')">'+
+      '<div class="card-info">'+
+        '<div class="card-meta">'+
+          '<span class="card-tag '+tagClass+'">'+tagLabel+'</span>'+
+          '<div class="card-size">'+fmt(f.metadata&&f.metadata.size)+'</div>'+
+          '<div class="card-date">'+fmtDate(f.created_at)+'</div>'+
+        '</div>'+
       '</div>';
+
     root.appendChild(card);
   });
 }
 
-function openLb(url, f, folder) {
-  document.getElementById('lb-img').src = url;
-  const label = folder === 'compressed' ? '⚡ сжатое' : folder === 'original' ? '📷 оригинал' : '';
-  document.getElementById('lb-info').textContent = f.name + ' · ' + fmt(f.metadata && f.metadata.size) + (label ? ' · ' + label : '');
+// ── Лайтбокс ──────────────────────────────────────────
+function openLb(url, path, f){
+  lbCurrent={url,path,f};
+  document.getElementById('lb-img').src=url;
+  const folder=f._prefix==='compressed'?'⚡ сжатое':f._prefix==='original'?'📷 оригинал':'';
+  document.getElementById('lb-info').textContent=
+    f.name+' · '+fmt(f.metadata&&f.metadata.size)+(folder?' · '+folder:'');
   document.getElementById('lb').classList.remove('hidden');
 }
-function closeLb() {
+function closeLb(){
   document.getElementById('lb').classList.add('hidden');
-  document.getElementById('lb-img').src = '';
+  document.getElementById('lb-img').src='';
+  lbCurrent=null;
 }
-document.getElementById('lb').addEventListener('click', e => { if (e.target === e.currentTarget) closeLb(); });
-document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLb(); });
+document.getElementById('lb').addEventListener('click',e=>{if(e.target===e.currentTarget||e.target===document.getElementById('lb-img').parentElement)closeLb()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeLb();}});
 
+// ── Удаление одного фото ──────────────────────────────
+function confirmDeleteOne(path, event){
+  if(event){event.stopPropagation();}
+  showModal(
+    'Удалить фото?',
+    'Это действие нельзя отменить.',
+    async()=>{
+      await deleteFile(path);
+    }
+  );
+}
+
+function deleteCurrent(){
+  if(!lbCurrent)return;
+  const path=lbCurrent.path;
+  showModal(
+    'Удалить фото?',
+    'Это действие нельзя отменить.',
+    async()=>{
+      closeLb();
+      await deleteFile(path);
+    }
+  );
+}
+
+async function deleteFile(path){
+  const{error}=await sb.storage.from('photos').remove([path]);
+  if(error){toast('Ошибка: '+error.message,3500);return;}
+  allPhotos=allPhotos.filter(f=>getPath(f)!==path);
+  updateStorageBar();
+  render();
+  toast('Фото удалено');
+}
+
+// ── Удаление всего ────────────────────────────────────
+function confirmDeleteAll(){
+  if(!allPhotos.length){toast('Нет фото для удаления');return;}
+  showModal(
+    'Удалить все фото?',
+    'Будет удалено '+allPhotos.length+' фото. Это действие нельзя отменить.',
+    async()=>{
+      const paths=allPhotos.map(f=>getPath(f));
+      // Удаляем батчами по 100
+      const batch=100;
+      for(let i=0;i<paths.length;i+=batch){
+        const chunk=paths.slice(i,i+batch);
+        const{error}=await sb.storage.from('photos').remove(chunk);
+        if(error){toast('Ошибка: '+error.message,3500);return;}
+      }
+      allPhotos=[];
+      updateStorageBar();
+      render();
+      toast('Все фото удалены');
+    }
+  );
+}
+
+// ── Модалка ───────────────────────────────────────────
+let modalAction=null;
+
+function showModal(title,desc,onConfirm){
+  document.getElementById('modal-title').textContent=title;
+  document.getElementById('modal-desc').textContent=desc;
+  document.getElementById('modal-spin').style.display='none';
+  document.getElementById('modal-btns').style.display='flex';
+  modalAction=onConfirm;
+  document.getElementById('modal-ok').onclick=async()=>{
+    document.getElementById('modal-spin').style.display='block';
+    document.getElementById('modal-btns').style.display='none';
+    document.getElementById('modal-title').textContent='Удаляем...';
+    document.getElementById('modal-desc').textContent='';
+    await modalAction();
+    closeModal();
+  };
+  document.getElementById('modal').classList.remove('hidden');
+}
+
+function closeModal(){
+  document.getElementById('modal').classList.add('hidden');
+  modalAction=null;
+}
+
+document.getElementById('modal').addEventListener('click',e=>{
+  if(e.target===e.currentTarget)closeModal();
+});
+
+// ── Старт ─────────────────────────────────────────────
 load();
 </script>
 </body>
