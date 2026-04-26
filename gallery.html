@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Галерея фото</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#0a0a0a;--sf:#141414;--sf2:#1c1c1c;--bd:#2a2a2a;--ac:#e8ff6b;--tx:#f0f0f0;--mt:#666;--r:12px}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--tx);font-family:-apple-system,BlinkMacSystemFont,sans-serif;min-height:100dvh;padding:24px 16px 48px}
+header{display:flex;justify-content:space-between;align-items:center;max-width:1200px;margin:0 auto 32px;flex-wrap:wrap;gap:12px}
+.logo{font-size:15px;font-weight:600}.logo span{color:var(--ac)}
+.upload-link{font-size:13px;color:var(--ac);text-decoration:none;border:1px solid var(--ac);padding:6px 14px;border-radius:100px;opacity:.8}
+.upload-link:hover{opacity:1}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;max-width:1200px;margin:0 auto}
+.card{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);overflow:hidden;cursor:pointer;transition:border-color .2s,transform .15s}
+.card:hover{border-color:#555;transform:scale(1.02)}
+.card img{width:100%;aspect-ratio:1;object-fit:cover;display:block;background:var(--sf2)}
+.card-info{padding:8px 10px}
+.card-size{font-size:11px;color:var(--mt)}
+.card-date{font-size:11px;color:var(--mt);margin-top:2px}
+.empty{text-align:center;padding:80px 20px;color:var(--mt)}
+.empty h2{font-size:18px;font-weight:500;margin-bottom:8px;color:var(--tx)}
+.loading{text-align:center;padding:80px 20px;color:var(--mt);max-width:1200px;margin:0 auto}
+.spin{width:32px;height:32px;border:2px solid #2a2a2a;border-top-color:var(--ac);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 16px}
+@keyframes spin{to{transform:rotate(360deg)}}
+.lightbox{position:fixed;inset:0;background:rgba(0,0,0,.93);display:flex;align-items:center;justify-content:center;z-index:999;padding:20px}
+.lightbox.hidden{display:none}
+.lightbox img{max-width:100%;max-height:90dvh;border-radius:8px;object-fit:contain}
+.lb-close{position:fixed;top:16px;right:20px;font-size:32px;color:#fff;cursor:pointer;opacity:.6;background:none;border:none;line-height:1;padding:4px}
+.lb-close:hover{opacity:1}
+.lb-info{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);font-size:12px;color:rgba(255,255,255,.45);white-space:nowrap}
+.count{background:var(--sf2);border:1px solid var(--bd);padding:4px 12px;border-radius:100px;font-size:12px;color:var(--mt)}
+.storage-bar{max-width:1200px;margin:0 auto 24px;display:flex;align-items:center;gap:10px;font-size:12px;color:var(--mt)}
+.bar-track{flex:1;height:4px;background:var(--sf2);border-radius:2px;overflow:hidden}
+.bar-fill{height:100%;background:var(--ac);border-radius:2px;transition:width .5s}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">photo<span>.</span>gallery</div>
+  <div style="display:flex;gap:12px;align-items:center">
+    <span class="count" id="count">...</span>
+    <a href="index.html" class="upload-link">+ загрузить</a>
+  </div>
+</header>
+
+<div class="storage-bar" id="storage-bar" style="display:none">
+  <span id="storage-used"></span>
+  <div class="bar-track"><div class="bar-fill" id="bar-fill" style="width:0%"></div></div>
+  <span style="color:var(--mt)">1 ГБ</span>
+</div>
+
+<div id="root" class="loading"><div class="spin"></div>Загружаем фото...</div>
+
+<div class="lightbox hidden" id="lb">
+  <button class="lb-close" onclick="closeLb()">×</button>
+  <img id="lb-img" src="" alt="">
+  <div class="lb-info" id="lb-info"></div>
+</div>
+
+<script>
+const sb = supabase.createClient(
+  'https://fnwcuhwtforhmhybvscm.supabase.co',
+  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZud2N1aHd0Zm9yaG1oeWJ2c2NtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3Mjg0MzcsImV4cCI6MjA5MDMwNDQzN30.96-koYH8PvMai0sefi19emXskBYBPYJ-I9IFKWK7N6M'
+);
+
+function fmt(b) {
+  if (!b) return '';
+  b = +b;
+  return b < 1024 ? b + ' B' : b < 1048576 ? (b/1024).toFixed(1) + ' KB' : (b/1048576).toFixed(1) + ' MB';
+}
+function fmtDate(s) {
+  return new Date(s).toLocaleDateString('ru-RU', {day:'numeric',month:'short',year:'numeric'});
+}
+
+async function load() {
+  const { data, error } = await sb.storage.from('photos').list('', {
+    limit: 1000,
+    sortBy: { column: 'created_at', order: 'desc' }
+  });
+
+  const root = document.getElementById('root');
+
+  if (error || !data || !data.length) {
+    root.className = 'empty';
+    root.innerHTML = '<h2>Фото пока нет</h2><p>Загрузи первое фото через страницу загрузки</p>';
+    document.getElementById('count').textContent = '0 фото';
+    return;
+  }
+
+  const photos = data.filter(f => f.name && !f.name.endsWith('/'));
+  document.getElementById('count').textContent = photos.length + ' фото';
+
+  // Считаем общий размер
+  let totalBytes = 0;
+  photos.forEach(f => { if (f.metadata && f.metadata.size) totalBytes += +f.metadata.size; });
+  if (totalBytes > 0) {
+    const bar = document.getElementById('storage-bar');
+    bar.style.display = 'flex';
+    document.getElementById('storage-used').textContent = fmt(totalBytes) + ' использовано';
+    const pct = Math.min((totalBytes / (1024*1024*1024)) * 100, 100);
+    document.getElementById('bar-fill').style.width = Math.max(pct, 0.5) + '%';
+  }
+
+  root.className = 'grid';
+  root.innerHTML = '';
+
+  photos.forEach(f => {
+    const url = sb.storage.from('photos').getPublicUrl(f.name).data.publicUrl;
+    const card = document.createElement('div');
+    card.className = 'card';
+    card.onclick = () => openLb(url, f);
+    card.innerHTML =
+      '<img src="' + url + '" loading="lazy" alt="">' +
+      '<div class="card-info">' +
+      '<div class="card-size">' + fmt(f.metadata && f.metadata.size) + '</div>' +
+      '<div class="card-date">' + fmtDate(f.created_at) + '</div>' +
+      '</div>';
+    root.appendChild(card);
+  });
+}
+
+function openLb(url, f) {
+  document.getElementById('lb-img').src = url;
+  document.getElementById('lb-info').textContent = f.name + ' · ' + fmt(f.metadata && f.metadata.size);
+  document.getElementById('lb').classList.remove('hidden');
+}
+function closeLb() {
+  document.getElementById('lb').classList.add('hidden');
+  document.getElementById('lb-img').src = '';
+}
+
+document.getElementById('lb').addEventListener('click', e => {
+  if (e.target === e.currentTarget) closeLb();
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLb(); });
+
+load();
+</script>
+</body>
+</html>
