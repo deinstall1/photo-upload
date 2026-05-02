@@ -6,20 +6,20 @@
 <title>Галерея фото</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-:root{--bg:#0a0a0a;--sf:#141414;--sf2:#1c1c1c;--bd:#2a2a2a;--ac:#e8ff6b;--tx:#f0f0f0;--mt:#666;--r:12px;--rd:#f87171;--gr:#4ade80}
+:root{--bg:#0a0a0a;--sf:#141414;--sf2:#1c1c1c;--bd:#2a2a2a;--ac:#e8ff6b;--adim:rgba(232,255,107,.1);--tx:#f0f0f0;--mt:#666;--r:12px;--gr:#4ade80;--rd:#f87171}
 *{box-sizing:border-box;margin:0;padding:0}
 body{background:var(--bg);color:var(--tx);font-family:-apple-system,BlinkMacSystemFont,sans-serif;min-height:100dvh;padding:24px 16px 48px}
-header{display:flex;justify-content:space-between;align-items:center;max-width:1200px;margin:0 auto 20px;flex-wrap:wrap;gap:12px}
+header{display:flex;justify-content:space-between;align-items:center;max-width:1200px;margin:0 auto 20px;flex-wrap:wrap;gap:10px}
 .logo{font-size:15px;font-weight:600}.logo span{color:var(--ac)}
 .header-right{display:flex;gap:8px;align-items:center}
 .upload-link{font-size:12px;color:var(--ac);text-decoration:none;border:1px solid var(--ac);padding:5px 12px;border-radius:100px;opacity:.8}
 .upload-link:hover{opacity:1}
-.delete-all-btn{font-size:12px;color:var(--rd);border:1px solid rgba(248,113,113,.3);background:transparent;padding:5px 12px;border-radius:100px;cursor:pointer;transition:all .2s}
-.delete-all-btn:hover{background:rgba(248,113,113,.1);border-color:var(--rd)}
+.delete-all-btn{font-size:12px;color:var(--rd);border:1px solid rgba(248,113,113,.3);background:transparent;padding:5px 12px;border-radius:100px;cursor:pointer}
+.delete-all-btn:hover{background:rgba(248,113,113,.1)}
 
 .toolbar{max-width:1200px;margin:0 auto 20px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .filter-btn{padding:5px 14px;border-radius:100px;border:1px solid var(--bd);background:transparent;color:var(--mt);font-size:12px;cursor:pointer;transition:all .2s}
-.filter-btn.active{background:rgba(232,255,107,.1);border-color:var(--ac);color:var(--ac)}
+.filter-btn.active{background:var(--adim);border-color:var(--ac);color:var(--ac)}
 .count{margin-left:auto;background:var(--sf2);border:1px solid var(--bd);padding:4px 12px;border-radius:100px;font-size:12px;color:var(--mt)}
 
 .storage-bar{max-width:1200px;margin:0 auto 20px;display:flex;align-items:center;gap:10px;font-size:12px;color:var(--mt)}
@@ -30,20 +30,25 @@ header{display:flex;justify-content:space-between;align-items:center;max-width:1
 
 .card{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);overflow:hidden;position:relative;transition:border-color .2s}
 .card:hover{border-color:#444}
-.card:hover .del-btn{opacity:1}
-.card img{width:100%;aspect-ratio:1;object-fit:cover;display:block;background:var(--sf2);cursor:pointer}
+.card:hover .card-actions{opacity:1}
+.card img.thumb{width:100%;aspect-ratio:1;object-fit:cover;display:block;background:var(--sf2);cursor:pointer}
+.card-actions{position:absolute;top:6px;right:6px;display:flex;gap:5px;opacity:0;transition:opacity .2s}
+.action-btn{width:30px;height:30px;border-radius:50%;background:rgba(0,0,0,.75);border:1px solid rgba(255,255,255,.1);color:#fff;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .15s;backdrop-filter:blur(4px)}
+.action-btn:hover{background:rgba(255,255,255,.15)}
+.action-btn.tryon{border-color:rgba(232,255,107,.4);color:var(--ac)}
+.action-btn.tryon:hover{background:rgba(232,255,107,.15)}
+.action-btn.del{border-color:rgba(248,113,113,.3);color:var(--rd)}
+.action-btn.del:hover{background:rgba(248,113,113,.15)}
+
 .card-info{padding:8px 10px;display:flex;align-items:flex-start;justify-content:space-between;gap:6px}
 .card-meta{flex:1;min-width:0}
 .card-tag{display:inline-block;font-size:10px;padding:2px 6px;border-radius:4px;margin-bottom:3px;font-weight:600}
 .tag-c{background:rgba(232,255,107,.15);color:var(--ac)}
 .tag-o{background:rgba(74,222,128,.1);color:var(--gr)}
+.tag-t{background:rgba(96,165,250,.1);color:#60a5fa}
 .tag-x{background:rgba(255,255,255,.05);color:var(--mt)}
 .card-size{font-size:11px;color:var(--mt)}
 .card-date{font-size:11px;color:var(--mt);margin-top:1px}
-
-/* Кнопка удаления на карточке */
-.del-btn{position:absolute;top:6px;right:6px;width:28px;height:28px;border-radius:50%;background:rgba(0,0,0,.7);border:1px solid rgba(248,113,113,.4);color:var(--rd);font-size:14px;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .2s,background .15s;line-height:1}
-.del-btn:hover{background:rgba(248,113,113,.2)}
 
 .empty{text-align:center;padding:80px 20px;color:var(--mt);max-width:1200px;margin:0 auto}
 .empty h2{font-size:18px;font-weight:500;margin-bottom:8px;color:var(--tx)}
@@ -52,31 +57,91 @@ header{display:flex;justify-content:space-between;align-items:center;max-width:1
 @keyframes spin{to{transform:rotate(360deg)}}
 
 /* Лайтбокс */
-.lightbox{position:fixed;inset:0;background:rgba(0,0,0,.93);display:flex;align-items:center;justify-content:center;z-index:999;padding:20px}
+.lightbox{position:fixed;inset:0;background:rgba(0,0,0,.93);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px}
 .lightbox.hidden{display:none}
-.lb-img-wrap{position:relative;max-width:100%;max-height:90dvh}
 .lightbox img{max-width:100%;max-height:90dvh;border-radius:8px;object-fit:contain;display:block}
 .lb-close{position:fixed;top:16px;right:20px;font-size:32px;color:#fff;cursor:pointer;opacity:.6;background:none;border:none;line-height:1;padding:4px}
 .lb-close:hover{opacity:1}
-.lb-del{position:fixed;top:16px;right:64px;font-size:13px;color:var(--rd);background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.3);padding:6px 14px;border-radius:100px;cursor:pointer;transition:background .2s}
+.lb-del{position:fixed;top:16px;right:64px;font-size:13px;color:var(--rd);background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.3);padding:6px 14px;border-radius:100px;cursor:pointer}
 .lb-del:hover{background:rgba(248,113,113,.2)}
+.lb-tryon{position:fixed;top:16px;right:160px;font-size:13px;color:var(--ac);background:rgba(232,255,107,.1);border:1px solid rgba(232,255,107,.3);padding:6px 14px;border-radius:100px;cursor:pointer}
+.lb-tryon:hover{background:rgba(232,255,107,.2)}
 .lb-info{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);font-size:12px;color:rgba(255,255,255,.45);white-space:nowrap;text-align:center}
 
-/* Модальное подтверждение */
-.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:1000;padding:20px}
+/* ── Try-On панель ────────────────────────────── */
+.tryon-panel{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:flex-end;justify-content:center;z-index:200;padding:0}
+.tryon-panel.hidden{display:none}
+.tryon-sheet{background:var(--sf);border-radius:20px 20px 0 0;width:100%;max-width:560px;padding:24px 20px 32px;max-height:90dvh;overflow-y:auto}
+.sheet-handle{width:36px;height:4px;background:var(--bd);border-radius:2px;margin:0 auto 20px}
+.sheet-title{font-size:16px;font-weight:600;margin-bottom:4px}
+.sheet-sub{font-size:12px;color:var(--mt);margin-bottom:20px}
+
+.sheet-section{margin-bottom:18px}
+.sheet-label{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--mt);margin-bottom:10px}
+
+/* Превью выбранного фото */
+.selected-preview{display:flex;gap:12px;align-items:center;background:var(--sf2);border:1px solid var(--bd);border-radius:10px;padding:10px}
+.selected-preview img{width:56px;height:56px;border-radius:8px;object-fit:cover}
+.selected-preview .sel-info{font-size:12px;color:var(--mt);line-height:1.5}
+.selected-preview .sel-name{font-size:13px;font-weight:500;color:var(--tx);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:200px}
+
+/* Манекен */
+.mannequin-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px}
+.m-card{border:1.5px solid var(--bd);border-radius:10px;overflow:hidden;cursor:pointer;aspect-ratio:3/4;position:relative}
+.m-card.active{border-color:var(--ac)}
+.m-card img{width:100%;height:100%;object-fit:cover}
+.m-card-lbl{position:absolute;bottom:0;left:0;right:0;padding:4px;background:rgba(0,0,0,.7);font-size:10px;text-align:center;color:var(--mt)}
+.m-card.active .m-card-lbl{color:var(--ac)}
+
+/* Варианты низа */
+.bottom-chips{display:flex;gap:6px;flex-wrap:wrap}
+.chip{padding:5px 12px;border-radius:100px;border:1px solid var(--bd);background:transparent;color:var(--mt);font-size:12px;cursor:pointer;transition:all .2s}
+.chip.active{background:var(--adim);border-color:var(--ac);color:var(--ac)}
+
+/* Шаги */
+.steps-row{display:flex;align-items:center;gap:10px}
+.steps-row label{font-size:12px;color:var(--mt);width:70px;flex-shrink:0}
+.steps-row input[type=range]{flex:1}
+.steps-val{font-size:12px;font-weight:600;color:var(--ac);width:40px;text-align:right;flex-shrink:0}
+
+/* API ключ */
+.key-row{display:flex;gap:8px}
+.key-input{flex:1;background:var(--sf2);border:1px solid var(--bd);border-radius:8px;padding:9px 12px;color:var(--tx);font-size:13px;font-family:monospace}
+.key-input:focus{outline:none;border-color:var(--ac)}
+.key-save-btn{padding:9px 14px;background:var(--sf2);color:var(--mt);border:1px solid var(--bd);border-radius:8px;font-size:12px;cursor:pointer;white-space:nowrap}
+.key-save-btn:hover{color:var(--tx);border-color:#555}
+
+/* Кнопки панели */
+.sheet-btns{display:flex;gap:10px;margin-top:20px}
+.sheet-cancel{flex:1;padding:13px;border:1px solid var(--bd);background:transparent;color:var(--mt);border-radius:12px;font-size:14px;cursor:pointer}
+.sheet-run{flex:2;padding:13px;background:var(--ac);color:#0a0a0a;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
+.sheet-run:disabled{opacity:.4;cursor:not-allowed}
+
+/* Прогресс внутри панели */
+.tryon-progress{display:none;margin-top:16px}
+.progress-job{background:var(--sf2);border:1px solid var(--bd);border-radius:10px;padding:12px;margin-bottom:8px;display:flex;align-items:center;gap:10px}
+.progress-job.done{border-color:rgba(74,222,128,.3)}
+.progress-job.error{border-color:rgba(248,113,113,.3)}
+.pj-info{flex:1;min-width:0}
+.pj-name{font-size:12px;font-weight:500}
+.pj-status{font-size:11px;margin-top:2px}
+.pj-status.running{color:var(--ac)}
+.pj-status.done{color:var(--gr)}
+.pj-status.error{color:var(--rd)}
+.pj-spin{width:14px;height:14px;border:2px solid rgba(232,255,107,.2);border-top-color:var(--ac);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+.pj-result{width:40px;height:40px;border-radius:6px;object-fit:cover;cursor:pointer;flex-shrink:0}
+
+/* Модалка подтверждения */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:300;padding:20px}
 .modal-overlay.hidden{display:none}
 .modal{background:var(--sf);border:1px solid var(--bd);border-radius:16px;padding:24px;max-width:360px;width:100%;text-align:center}
 .modal h3{font-size:16px;font-weight:600;margin-bottom:8px}
 .modal p{font-size:13px;color:var(--mt);margin-bottom:20px;line-height:1.5}
 .modal-btns{display:flex;gap:10px}
 .modal-cancel{flex:1;padding:11px;border:1px solid var(--bd);background:transparent;color:var(--mt);border-radius:10px;font-size:14px;cursor:pointer}
-.modal-cancel:hover{color:var(--tx);border-color:#555}
-.modal-confirm{flex:1;padding:11px;border:none;background:rgba(248,113,113,.15);color:var(--rd);border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;border:1px solid rgba(248,113,113,.3)}
-.modal-confirm:hover{background:rgba(248,113,113,.25)}
-.modal-spin{width:20px;height:20px;border:2px solid rgba(248,113,113,.2);border-top-color:var(--rd);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 12px}
+.modal-confirm{flex:1;padding:11px;background:rgba(248,113,113,.15);color:var(--rd);border:1px solid rgba(248,113,113,.3);border-radius:10px;font-size:14px;font-weight:600;cursor:pointer}
 
-/* Тост */
-.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--sf2);border:1px solid var(--bd);color:var(--tx);font-size:13px;padding:10px 18px;border-radius:100px;transition:transform .3s cubic-bezier(.34,1.56,.64,1);white-space:nowrap;z-index:1001;pointer-events:none}
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--sf2);border:1px solid var(--bd);color:var(--tx);font-size:13px;padding:10px 18px;border-radius:100px;transition:transform .3s cubic-bezier(.34,1.56,.64,1);white-space:nowrap;z-index:999;pointer-events:none}
 .toast.show{transform:translateX(-50%) translateY(0)}
 </style>
 </head>
@@ -94,6 +159,7 @@ header{display:flex;justify-content:space-between;align-items:center;max-width:1
   <button class="filter-btn active" onclick="setFilter('all',this)">Все</button>
   <button class="filter-btn" onclick="setFilter('compressed',this)">⚡ Сжатые</button>
   <button class="filter-btn" onclick="setFilter('original',this)">📷 Оригиналы</button>
+  <button class="filter-btn" onclick="setFilter('tryon',this)">✨ Try-On</button>
   <span class="count" id="count">...</span>
 </div>
 
@@ -108,17 +174,103 @@ header{display:flex;justify-content:space-between;align-items:center;max-width:1
 <!-- Лайтбокс -->
 <div class="lightbox hidden" id="lb">
   <button class="lb-close" onclick="closeLb()">×</button>
+  <button class="lb-tryon" id="lb-tryon-btn" onclick="openTryonFromLb()">✨ Примерить</button>
   <button class="lb-del" id="lb-del-btn" onclick="deleteCurrent()">🗑 Удалить</button>
-  <div class="lb-img-wrap"><img id="lb-img" src="" alt=""></div>
+  <img id="lb-img" src="" alt="">
   <div class="lb-info" id="lb-info"></div>
 </div>
 
-<!-- Модалка подтверждения -->
+<!-- Try-On панель -->
+<div class="tryon-panel hidden" id="tryon-panel">
+  <div class="tryon-sheet" id="tryon-sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">✨ Примерить на манекене</div>
+    <div class="sheet-sub" id="sheet-sub">158 см / 50 кг · светлый фон</div>
+
+    <!-- Выбранное фото -->
+    <div class="sheet-section">
+      <div class="sheet-label">Фото одежды</div>
+      <div class="selected-preview">
+        <img id="sel-thumb" src="" alt="">
+        <div class="sel-info">
+          <div class="sel-name" id="sel-name">—</div>
+          <div id="sel-meta"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- API ключ -->
+    <div class="sheet-section" id="key-section">
+      <div class="sheet-label">Replicate API Token</div>
+      <div class="key-row">
+        <input type="password" class="key-input" id="api-key" placeholder="r8_xxxxxxxxxxxx">
+        <button class="key-save-btn" onclick="saveKey()">Сохранить</button>
+      </div>
+      <div style="font-size:11px;color:var(--mt);margin-top:6px">
+        <a href="https://replicate.com/account/api-tokens" target="_blank" style="color:var(--ac);text-decoration:none">replicate.com</a>
+        → API tokens · $5 бесплатно (~200 генераций)
+      </div>
+    </div>
+
+    <!-- Манекен -->
+    <div class="sheet-section">
+      <div class="sheet-label">Манекен</div>
+      <div class="mannequin-row">
+        <div class="m-card active" onclick="selMannequin(this,'https://images.unsplash.com/photo-1520013817300-1f4c1cb245ef?w=768&q=90')">
+          <img src="https://images.unsplash.com/photo-1520013817300-1f4c1cb245ef?w=200&q=70" alt="">
+          <div class="m-card-lbl">Светлый</div>
+        </div>
+        <div class="m-card" onclick="selMannequin(this,'https://images.unsplash.com/photo-1554568218-0f1715e72254?w=768&q=90')">
+          <img src="https://images.unsplash.com/photo-1554568218-0f1715e72254?w=200&q=70" alt="">
+          <div class="m-card-lbl">Нейтральный</div>
+        </div>
+        <div class="m-card" onclick="selMannequin(this,'https://images.unsplash.com/photo-1619535860434-cf9b902a1a93?w=768&q=90')">
+          <img src="https://images.unsplash.com/photo-1619535860434-cf9b902a1a93?w=200&q=70" alt="">
+          <div class="m-card-lbl">Студия</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Варианты с низом -->
+    <div class="sheet-section" id="bottoms-section">
+      <div class="sheet-label">Также с вариантами низа</div>
+      <div class="bottom-chips">
+        <button class="chip" onclick="toggleChip(this,'jeans')">👖 Джинсы</button>
+        <button class="chip" onclick="toggleChip(this,'shorts')">🩳 Шорты</button>
+        <button class="chip" onclick="toggleChip(this,'skirt')">👗 Юбка</button>
+        <button class="chip" onclick="toggleChip(this,'pants')">👔 Брюки</button>
+      </div>
+      <div style="font-size:11px;color:var(--mt);margin-top:8px">Каждый вариант = 2 запроса к API</div>
+    </div>
+
+    <!-- Качество -->
+    <div class="sheet-section">
+      <div class="sheet-label">Качество</div>
+      <div class="steps-row">
+        <label>Шаги</label>
+        <input type="range" id="steps" min="20" max="40" value="30" step="5"
+          oninput="document.getElementById('steps-val').textContent=this.value">
+        <span class="steps-val" id="steps-val">30</span>
+      </div>
+    </div>
+
+    <!-- Прогресс -->
+    <div class="tryon-progress" id="tryon-progress"></div>
+
+    <!-- Кнопки -->
+    <div class="sheet-btns" id="sheet-btns">
+      <button class="sheet-cancel" onclick="closeTryon()">Отмена</button>
+      <button class="sheet-run" id="sheet-run" onclick="runTryon()">✨ Примерить</button>
+    </div>
+  </div>
+</div>
+
+<!-- Модалка -->
 <div class="modal-overlay hidden" id="modal">
   <div class="modal">
-    <div class="modal-spin" id="modal-spin" style="display:none"></div>
-    <h3 id="modal-title">Удалить все фото?</h3>
-    <p id="modal-desc">Это действие нельзя отменить. Все фотографии будут удалены навсегда.</p>
+    <div class="spin" id="modal-spin" style="display:none;margin-bottom:12px"></div>
+    <h3 id="modal-title"></h3>
+    <p id="modal-desc"></p>
     <div class="modal-btns" id="modal-btns">
       <button class="modal-cancel" onclick="closeModal()">Отмена</button>
       <button class="modal-confirm" id="modal-ok">Удалить</button>
@@ -129,214 +281,286 @@ header{display:flex;justify-content:space-between;align-items:center;max-width:1
 <div class="toast" id="toast"></div>
 
 <script>
-const sb = supabase.createClient(
-  'https://fnwcuhwtforhmhybvscm.supabase.co',
-  'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZud2N1aHd0Zm9yaG1oeWJ2c2NtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3Mjg0MzcsImV4cCI6MjA5MDMwNDQzN30.96-koYH8PvMai0sefi19emXskBYBPYJ-I9IFKWK7N6M'
-);
+const SUPABASE_URL = 'https://fnwcuhwtforhmhybvscm.supabase.co'
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZud2N1aHd0Zm9yaG1oeWJ2c2NtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3Mjg0MzcsImV4cCI6MjA5MDMwNDQzN30.96-koYH8PvMai0sefi19emXskBYBPYJ-I9IFKWK7N6M'
+const EDGE_FN = `${SUPABASE_URL}/functions/v1/tryon`
+const BUCKET = 'photos'
 
-let allPhotos = [];
-let currentFilter = 'all';
-let lbCurrent = null; // текущее фото в лайтбоксе
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
 
-// ── Утилиты ────────────────────────────────────────────
+let allPhotos = []
+let currentFilter = 'all'
+let lbCurrent = null
+// Try-On state
+let tryonFile = null
+let mannequinUrl = 'https://images.unsplash.com/photo-1520013817300-1f4c1cb245ef?w=768&q=90'
+let selectedBottoms = new Set()
+let tryonRunning = false
+
+// ── Утилиты ───────────────────────────────────────────────────────────────────
 function fmt(b){if(!b)return'';b=+b;return b<1024?b+' B':b<1048576?(b/1024).toFixed(1)+' KB':(b/1048576).toFixed(1)+' MB'}
 function fmtDate(s){return new Date(s).toLocaleDateString('ru-RU',{day:'numeric',month:'short'})}
-function getFolder(f){if(f._prefix==='compressed')return'compressed';if(f._prefix==='original')return'original';return'other'}
+function getFolder(f){return f._prefix||'root'}
 function getPath(f){return f._prefix?f._prefix+'/'+f.name:f.name}
+function toast(m,d=2500){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),d)}
+function isTops(name){const n=name.toLowerCase();for(const k of['pant','jean','skirt','short','dress','платье','штан','юбк','шорт','джинс','комбинезон'])if(n.includes(k))return false;return true}
 
-function toast(m,d=2500){
-  const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');
-  setTimeout(()=>t.classList.remove('show'),d);
-}
-
-// ── Загрузка данных ────────────────────────────────────
+// ── Загрузка ──────────────────────────────────────────────────────────────────
 async function listFolder(prefix){
-  const{data,error}=await sb.storage.from('photos').list(prefix,{limit:1000,sortBy:{column:'created_at',order:'desc'}});
-  if(error||!data)return[];
-  let files=[];
+  const{data,error}=await sb.storage.from(BUCKET).list(prefix,{limit:1000,sortBy:{column:'created_at',order:'desc'}})
+  if(error||!data)return[]
+  let files=[]
   for(const item of data){
-    if(item.id===null){
-      const sub=await listFolder(prefix?prefix+'/'+item.name:item.name);
-      files=files.concat(sub);
-    } else {
-      files.push({...item,_prefix:prefix});
-    }
+    if(item.id===null){const sub=await listFolder(prefix?prefix+'/'+item.name:item.name);files=files.concat(sub)}
+    else files.push({...item,_prefix:prefix})
   }
-  return files;
+  return files
 }
 
 async function load(){
-  const root=document.getElementById('root');
-  const files=await listFolder('');
-  allPhotos=files.filter(f=>f.name&&f.name.match(/\.(jpg|jpeg|png|webp|heic|heif)$/i));
-  allPhotos.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at));
-  updateStorageBar();
-  render();
+  const root=document.getElementById('root')
+  const files=await listFolder('')
+  allPhotos=files.filter(f=>f.name&&f.name.match(/\.(jpg|jpeg|png|webp|heic|heif)$/i))
+  allPhotos.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at))
+  updateStorageBar()
+  render()
 }
 
 function updateStorageBar(){
-  let total=0;
-  allPhotos.forEach(f=>{if(f.metadata&&f.metadata.size)total+=+f.metadata.size});
+  let total=0;allPhotos.forEach(f=>{if(f.metadata&&f.metadata.size)total+=+f.metadata.size})
   if(total>0){
-    document.getElementById('storage-bar').style.display='flex';
-    document.getElementById('storage-used').textContent=fmt(total)+' использовано';
-    document.getElementById('bar-fill').style.width=Math.max((total/(1024*1024*1024))*100,0.3)+'%';
+    document.getElementById('storage-bar').style.display='flex'
+    document.getElementById('storage-used').textContent=fmt(total)+' использовано'
+    document.getElementById('bar-fill').style.width=Math.max((total/(1024*1024*1024))*100,0.3)+'%'
   }
 }
 
-// ── Фильтры и рендер ──────────────────────────────────
+// ── Фильтр и рендер ───────────────────────────────────────────────────────────
 function setFilter(f,btn){
-  currentFilter=f;
-  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
-  if(btn)btn.classList.add('active');
-  render();
+  currentFilter=f
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'))
+  if(btn)btn.classList.add('active')
+  render()
 }
 
 function render(){
-  const root=document.getElementById('root');
-  const photos=currentFilter==='all'?allPhotos:allPhotos.filter(f=>getFolder(f)===currentFilter);
-  document.getElementById('count').textContent=photos.length+' фото';
-
-  if(!photos.length){
-    root.className='empty';
-    root.innerHTML='<h2>Нет фото</h2><p>В этой категории пока ничего нет</p>';
-    return;
-  }
-
-  root.className='grid';
-  root.innerHTML='';
+  const root=document.getElementById('root')
+  const photos=currentFilter==='all'?allPhotos:allPhotos.filter(f=>getFolder(f)===currentFilter)
+  document.getElementById('count').textContent=photos.length+' фото'
+  if(!photos.length){root.className='empty';root.innerHTML='<h2>Нет фото</h2><p>В этой категории пока ничего нет</p>';return}
+  root.className='grid';root.innerHTML=''
 
   photos.forEach(f=>{
-    const path=getPath(f);
-    const url=sb.storage.from('photos').getPublicUrl(path).data.publicUrl;
-    const folder=getFolder(f);
-    const tagClass=folder==='compressed'?'tag-c':folder==='original'?'tag-o':'tag-x';
-    const tagLabel=folder==='compressed'?'⚡ сжатое':folder==='original'?'📷 оригинал':'📁';
+    const path=getPath(f)
+    const url=sb.storage.from(BUCKET).getPublicUrl(path).data.publicUrl
+    const folder=getFolder(f)
+    const tagClass=folder==='compressed'?'tag-c':folder==='original'?'tag-o':folder==='tryon'?'tag-t':'tag-x'
+    const tagLabel=folder==='compressed'?'⚡ сжатое':folder==='original'?'📷 оригинал':folder==='tryon'?'✨ try-on':'📁'
+    const canTryon = folder==='compressed'||folder==='original'||folder==='root'
 
-    const card=document.createElement('div');
-    card.className='card';
-    card.dataset.path=path;
-
+    const card=document.createElement('div')
+    card.className='card'
     card.innerHTML=
-      '<button class="del-btn" title="Удалить" onclick="confirmDeleteOne(\''+path+'\',event)">✕</button>'+
-      '<img src="'+url+'" loading="lazy" alt="" onclick="openLb(\''+url+'\',\''+path+'\','+JSON.stringify(f).replace(/'/g,"&#39;")+')">'+
-      '<div class="card-info">'+
-        '<div class="card-meta">'+
-          '<span class="card-tag '+tagClass+'">'+tagLabel+'</span>'+
-          '<div class="card-size">'+fmt(f.metadata&&f.metadata.size)+'</div>'+
-          '<div class="card-date">'+fmtDate(f.created_at)+'</div>'+
-        '</div>'+
-      '</div>';
-
-    root.appendChild(card);
-  });
+      `<img class="thumb" src="${url}" loading="lazy" alt="" onclick="openLb('${url}','${path}',${JSON.stringify(f).replace(/'/g,"&#39;")})">
+      <div class="card-actions">
+        ${canTryon?`<button class="action-btn tryon" title="Примерить" onclick="openTryon('${path}','${url}',event)">✨</button>`:''}
+        <button class="action-btn del" title="Удалить" onclick="confirmDeleteOne('${path}',event)">✕</button>
+      </div>
+      <div class="card-info">
+        <div class="card-meta">
+          <span class="card-tag ${tagClass}">${tagLabel}</span>
+          <div class="card-size">${fmt(f.metadata&&f.metadata.size)}</div>
+          <div class="card-date">${fmtDate(f.created_at)}</div>
+        </div>
+      </div>`
+    root.appendChild(card)
+  })
 }
 
-// ── Лайтбокс ──────────────────────────────────────────
-function openLb(url, path, f){
-  lbCurrent={url,path,f};
-  document.getElementById('lb-img').src=url;
-  const folder=f._prefix==='compressed'?'⚡ сжатое':f._prefix==='original'?'📷 оригинал':'';
-  document.getElementById('lb-info').textContent=
-    f.name+' · '+fmt(f.metadata&&f.metadata.size)+(folder?' · '+folder:'');
-  document.getElementById('lb').classList.remove('hidden');
+// ── Лайтбокс ──────────────────────────────────────────────────────────────────
+function openLb(url,path,f){
+  lbCurrent={url,path,f}
+  document.getElementById('lb-img').src=url
+  const folder=f._prefix||''
+  document.getElementById('lb-info').textContent=f.name+' · '+fmt(f.metadata&&f.metadata.size)+(folder?' · '+folder:'')
+  const canTryon=folder==='compressed'||folder==='original'||folder===''||folder==='root'
+  document.getElementById('lb-tryon-btn').style.display=canTryon?'block':'none'
+  document.getElementById('lb').classList.remove('hidden')
 }
-function closeLb(){
-  document.getElementById('lb').classList.add('hidden');
-  document.getElementById('lb-img').src='';
-  lbCurrent=null;
-}
-document.getElementById('lb').addEventListener('click',e=>{if(e.target===e.currentTarget||e.target===document.getElementById('lb-img').parentElement)closeLb()});
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeLb();}});
+function closeLb(){document.getElementById('lb').classList.add('hidden');document.getElementById('lb-img').src='';lbCurrent=null}
+function openTryonFromLb(){if(!lbCurrent)return;closeLb();openTryon(lbCurrent.path,lbCurrent.url,null)}
+document.getElementById('lb').addEventListener('click',e=>{if(e.target===e.currentTarget)closeLb()})
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeTryon();closeLb()}})
 
-// ── Удаление одного фото ──────────────────────────────
-function confirmDeleteOne(path, event){
-  if(event){event.stopPropagation();}
-  showModal(
-    'Удалить фото?',
-    'Это действие нельзя отменить.',
-    async()=>{
-      await deleteFile(path);
+// ── Try-On ────────────────────────────────────────────────────────────────────
+function openTryon(path, thumbUrl, event){
+  if(event)event.stopPropagation()
+  tryonFile={path, thumbUrl}
+  const fname=path.split('/').pop()
+
+  document.getElementById('sel-thumb').src=thumbUrl
+  document.getElementById('sel-name').textContent=fname
+  document.getElementById('sel-meta').textContent=path.includes('/')?path.split('/')[0]:''
+
+  // Показываем/прячем варианты низа только для топов
+  document.getElementById('bottoms-section').style.display=isTops(fname)?'block':'none'
+
+  // Восстанавливаем API ключ
+  const saved=localStorage.getItem('replicate_key')
+  if(saved)document.getElementById('api-key').value=saved
+
+  // Сброс прогресса
+  document.getElementById('tryon-progress').style.display='none'
+  document.getElementById('tryon-progress').innerHTML=''
+  document.getElementById('sheet-btns').style.display='flex'
+  document.getElementById('sheet-run').disabled=false
+  tryonRunning=false
+
+  document.getElementById('tryon-panel').classList.remove('hidden')
+}
+
+function closeTryon(){
+  if(tryonRunning)return
+  document.getElementById('tryon-panel').classList.add('hidden')
+}
+
+function selMannequin(el,url){
+  document.querySelectorAll('.m-card').forEach(c=>c.classList.remove('active'))
+  el.classList.add('active')
+  mannequinUrl=url
+}
+
+function toggleChip(el,name){
+  if(selectedBottoms.has(name)){selectedBottoms.delete(name);el.classList.remove('active')}
+  else{selectedBottoms.add(name);el.classList.add('active')}
+}
+
+function saveKey(){
+  const val=document.getElementById('api-key').value.trim()
+  if(val){localStorage.setItem('replicate_key',val);toast('Токен сохранён ✓')}
+}
+
+async function runTryon(){
+  if(tryonRunning||!tryonFile)return
+  const apiKey=(document.getElementById('api-key').value.trim()||localStorage.getItem('replicate_key')||'').trim()
+  if(!apiKey){toast('Введи Replicate API токен!',3000);return}
+  localStorage.setItem('replicate_key',apiKey)
+
+  const fname=tryonFile.path.split('/').pop()
+  const steps=parseInt(document.getElementById('steps').value)
+  const bottoms=[...selectedBottoms]
+
+  // Строим задачи
+  const tasks=[{mode:'base',label:'Базовый манекен'}]
+  if(isTops(fname)){
+    bottoms.forEach(b=>tasks.push({mode:'with_bottom',bottom:b,label:`С ${b}`}))
+  }
+
+  tryonRunning=true
+  document.getElementById('sheet-run').disabled=true
+  document.getElementById('sheet-btns').style.display='none'
+  const prog=document.getElementById('tryon-progress')
+  prog.style.display='block'
+  prog.innerHTML=''
+
+  const jobEls={}
+  tasks.forEach(t=>{
+    const el=document.createElement('div')
+    el.className='progress-job'
+    const id=t.mode+(t.bottom||'')
+    el.id='pj-'+id
+    el.innerHTML=`<div class="pj-info"><div class="pj-name">${t.label}</div><div class="pj-status running" id="pjs-${id}">в очереди...</div></div><div class="pj-spin" id="pji-${id}"></div>`
+    prog.appendChild(el)
+    jobEls[id]=el
+  })
+
+  let ok=0,fail=0
+  for(const t of tasks){
+    const id=t.mode+(t.bottom||'')
+    document.getElementById('pjs-'+id).textContent=t.mode==='with_bottom'?'шаг 1/2: надеваем низ...':'генерируем...'
+    try{
+      const resp=await fetch(EDGE_FN,{
+        method:'POST',
+        headers:{'Content-Type':'application/json','x-replicate-token':apiKey},
+        body:JSON.stringify({mode:t.mode,filename:fname,bottom:t.bottom,mannequin_url:mannequinUrl,steps,replicate_token:apiKey})
+      })
+      const result=await resp.json()
+      if(result.ok&&result.url){
+        ok++
+        document.getElementById('pj-'+id).classList.add('done')
+        document.getElementById('pjs-'+id).className='pj-status done'
+        document.getElementById('pjs-'+id).textContent='✓ готово'
+        document.getElementById('pji-'+id).outerHTML=`<img class="pj-result" src="${result.url}" onclick="window.open('${result.url}')" title="Открыть">`
+      }else throw new Error(result.error||'ошибка')
+    }catch(err){
+      fail++
+      document.getElementById('pj-'+id).classList.add('error')
+      document.getElementById('pjs-'+id).className='pj-status error'
+      document.getElementById('pjs-'+id).textContent='✗ '+(err.message||'ошибка').slice(0,40)
+      document.getElementById('pji-'+id).outerHTML=`<div style="width:8px;height:8px;border-radius:50%;background:var(--rd)"></div>`
     }
-  );
+  }
+
+  tryonRunning=false
+  // Показываем кнопку "Закрыть"
+  document.getElementById('sheet-btns').style.display='flex'
+  document.getElementById('sheet-run').textContent='✓ Готово! Закрыть'
+  document.getElementById('sheet-run').disabled=false
+  document.getElementById('sheet-run').onclick=()=>{closeTryon();load()}
+
+  if(ok>0)toast(`${ok} фото готово! Смотри в галерее`,3500)
 }
 
+// ── Удаление ──────────────────────────────────────────────────────────────────
+function confirmDeleteOne(path,event){
+  if(event)event.stopPropagation()
+  showModal('Удалить фото?','Это действие нельзя отменить.',async()=>{await deleteFile(path)})
+}
 function deleteCurrent(){
-  if(!lbCurrent)return;
-  const path=lbCurrent.path;
-  showModal(
-    'Удалить фото?',
-    'Это действие нельзя отменить.',
-    async()=>{
-      closeLb();
-      await deleteFile(path);
-    }
-  );
+  if(!lbCurrent)return
+  const path=lbCurrent.path
+  showModal('Удалить фото?','Это действие нельзя отменить.',async()=>{closeLb();await deleteFile(path)})
 }
-
 async function deleteFile(path){
-  const{error}=await sb.storage.from('photos').remove([path]);
-  if(error){toast('Ошибка: '+error.message,3500);return;}
-  allPhotos=allPhotos.filter(f=>getPath(f)!==path);
-  updateStorageBar();
-  render();
-  toast('Фото удалено');
+  const{error}=await sb.storage.from(BUCKET).remove([path])
+  if(error){toast('Ошибка: '+error.message,3500);return}
+  allPhotos=allPhotos.filter(f=>getPath(f)!==path)
+  updateStorageBar();render();toast('Фото удалено')
 }
-
-// ── Удаление всего ────────────────────────────────────
 function confirmDeleteAll(){
-  if(!allPhotos.length){toast('Нет фото для удаления');return;}
-  showModal(
-    'Удалить все фото?',
-    'Будет удалено '+allPhotos.length+' фото. Это действие нельзя отменить.',
-    async()=>{
-      const paths=allPhotos.map(f=>getPath(f));
-      // Удаляем батчами по 100
-      const batch=100;
-      for(let i=0;i<paths.length;i+=batch){
-        const chunk=paths.slice(i,i+batch);
-        const{error}=await sb.storage.from('photos').remove(chunk);
-        if(error){toast('Ошибка: '+error.message,3500);return;}
-      }
-      allPhotos=[];
-      updateStorageBar();
-      render();
-      toast('Все фото удалены');
+  if(!allPhotos.length){toast('Нет фото');return}
+  showModal('Удалить все фото?',`Будет удалено ${allPhotos.length} фото. Нельзя отменить.`,async()=>{
+    const paths=allPhotos.map(f=>getPath(f))
+    for(let i=0;i<paths.length;i+=100){
+      const{error}=await sb.storage.from(BUCKET).remove(paths.slice(i,i+100))
+      if(error){toast('Ошибка: '+error.message,3500);return}
     }
-  );
+    allPhotos=[];updateStorageBar();render();toast('Все фото удалены')
+  })
 }
 
-// ── Модалка ───────────────────────────────────────────
-let modalAction=null;
-
+// ── Модалка ───────────────────────────────────────────────────────────────────
+let modalAction=null
 function showModal(title,desc,onConfirm){
-  document.getElementById('modal-title').textContent=title;
-  document.getElementById('modal-desc').textContent=desc;
-  document.getElementById('modal-spin').style.display='none';
-  document.getElementById('modal-btns').style.display='flex';
-  modalAction=onConfirm;
+  document.getElementById('modal-title').textContent=title
+  document.getElementById('modal-desc').textContent=desc
+  document.getElementById('modal-spin').style.display='none'
+  document.getElementById('modal-btns').style.display='flex'
+  modalAction=onConfirm
   document.getElementById('modal-ok').onclick=async()=>{
-    document.getElementById('modal-spin').style.display='block';
-    document.getElementById('modal-btns').style.display='none';
-    document.getElementById('modal-title').textContent='Удаляем...';
-    document.getElementById('modal-desc').textContent='';
-    await modalAction();
-    closeModal();
-  };
-  document.getElementById('modal').classList.remove('hidden');
+    document.getElementById('modal-spin').style.display='block'
+    document.getElementById('modal-btns').style.display='none'
+    document.getElementById('modal-title').textContent='Удаляем...'
+    document.getElementById('modal-desc').textContent=''
+    await modalAction();closeModal()
+  }
+  document.getElementById('modal').classList.remove('hidden')
 }
+function closeModal(){document.getElementById('modal').classList.add('hidden');modalAction=null}
+document.getElementById('modal').addEventListener('click',e=>{if(e.target===e.currentTarget)closeModal()})
 
-function closeModal(){
-  document.getElementById('modal').classList.add('hidden');
-  modalAction=null;
-}
-
-document.getElementById('modal').addEventListener('click',e=>{
-  if(e.target===e.currentTarget)closeModal();
-});
-
-// ── Старт ─────────────────────────────────────────────
-load();
+// ── Старт ──────────────────────────────────────────────────────────────────────
+load()
 </script>
 </body>
 </html>
