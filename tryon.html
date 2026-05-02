@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Virtual Try-On</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root{--bg:#0a0a0a;--sf:#141414;--sf2:#1c1c1c;--bd:#2a2a2a;--ac:#e8ff6b;--adim:rgba(232,255,107,.1);--tx:#f0f0f0;--mt:#666;--r:14px;--gr:#4ade80;--rd:#f87171;--bl:#60a5fa}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--tx);font-family:-apple-system,BlinkMacSystemFont,sans-serif;min-height:100dvh;padding:24px 16px 48px;max-width:640px;margin:0 auto}
+header{display:flex;justify-content:space-between;align-items:center;margin-bottom:28px}
+.logo{font-size:15px;font-weight:600}.logo span{color:var(--ac)}
+.nav-links{display:flex;gap:10px}
+.nav-link{font-size:12px;color:var(--mt);text-decoration:none;border:1px solid var(--bd);padding:4px 10px;border-radius:100px}
+
+.section{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:18px;margin-bottom:14px}
+.section-title{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--mt);margin-bottom:14px}
+
+/* Replicate key */
+.key-row{display:flex;gap:8px}
+.key-input{flex:1;background:var(--sf2);border:1px solid var(--bd);border-radius:8px;padding:9px 12px;color:var(--tx);font-size:13px;font-family:monospace}
+.key-input:focus{outline:none;border-color:var(--ac)}
+.key-save{padding:9px 16px;background:var(--ac);color:#0a0a0a;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;white-space:nowrap}
+.key-hint{font-size:11px;color:var(--mt);margin-top:8px}
+.key-hint a{color:var(--ac);text-decoration:none}
+
+/* Mannequin selector */
+.mannequin-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+.mcard{border:1.5px solid var(--bd);border-radius:10px;overflow:hidden;cursor:pointer;transition:border-color .2s;aspect-ratio:3/4;position:relative}
+.mcard.active{border-color:var(--ac)}
+.mcard img{width:100%;height:100%;object-fit:cover;display:block}
+.mcard-label{position:absolute;bottom:0;left:0;right:0;padding:4px 6px;background:rgba(0,0,0,.7);font-size:10px;text-align:center;color:var(--mt)}
+.mcard.active .mcard-label{color:var(--ac)}
+.custom-url-row{display:flex;gap:8px;margin-top:8px}
+.custom-url-input{flex:1;background:var(--sf2);border:1px solid var(--bd);border-radius:8px;padding:8px 12px;color:var(--tx);font-size:12px}
+.custom-url-input:focus{outline:none;border-color:#555}
+
+/* Mode */
+.mode-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.mode-btn{padding:12px;border-radius:10px;border:1.5px solid var(--bd);background:transparent;color:var(--mt);font-size:13px;font-weight:500;cursor:pointer;text-align:left;transition:all .2s;line-height:1.4}
+.mode-btn .mode-title{display:block;font-weight:600;margin-bottom:2px}
+.mode-btn .mode-sub{display:block;font-size:11px}
+.mode-btn.active{background:var(--adim);border-color:var(--ac);color:var(--ac)}
+
+/* Bottom variants */
+.bottom-chips{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.chip{padding:5px 12px;border-radius:100px;border:1px solid var(--bd);background:transparent;color:var(--mt);font-size:12px;cursor:pointer;transition:all .2s}
+.chip.active{background:var(--adim);border-color:var(--ac);color:var(--ac)}
+
+/* Steps */
+.steps-row{display:flex;align-items:center;gap:10px;margin-top:12px}
+.steps-row label{font-size:12px;color:var(--mt);width:80px;flex-shrink:0}
+.steps-row input[type=range]{flex:1}
+.steps-val{font-size:12px;font-weight:600;color:var(--ac);width:32px;text-align:right}
+
+/* Run button */
+.run-btn{width:100%;padding:16px;background:var(--ac);color:#0a0a0a;border:none;border-radius:var(--r);font-size:15px;font-weight:700;cursor:pointer;transition:opacity .2s;display:flex;align-items:center;justify-content:center;gap:8px;margin-top:6px}
+.run-btn:disabled{opacity:.4;cursor:not-allowed}
+
+/* Progress */
+.progress{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);padding:18px;margin-top:14px;display:none}
+.progress-title{font-size:13px;font-weight:600;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
+.p-count{font-size:12px;color:var(--mt)}
+.jobs{display:flex;flex-direction:column;gap:8px;max-height:360px;overflow-y:auto}
+.job{background:var(--sf2);border:1px solid var(--bd);border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:10px;transition:border-color .2s}
+.job.running{border-color:rgba(232,255,107,.3)}
+.job.done{border-color:rgba(74,222,128,.3)}
+.job.error{border-color:rgba(248,113,113,.3)}
+.job-thumb{width:40px;height:40px;border-radius:6px;object-fit:cover;background:var(--bg);flex-shrink:0}
+.job-info{flex:1;min-width:0}
+.job-name{font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.job-status{font-size:11px;margin-top:2px}
+.job-status.running{color:var(--ac)}
+.job-status.done{color:var(--gr)}
+.job-status.error{color:var(--rd)}
+.job-status.pending{color:var(--mt)}
+.spin{width:14px;height:14px;border:2px solid rgba(232,255,107,.2);border-top-color:var(--ac);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
+@keyframes spin{to{transform:rotate(360deg)}}
+.dot-ok{width:8px;height:8px;border-radius:50%;background:var(--gr);flex-shrink:0}
+.dot-err{width:8px;height:8px;border-radius:50%;background:var(--rd);flex-shrink:0}
+.dot-wait{width:8px;height:8px;border-radius:50%;background:var(--bd);flex-shrink:0}
+
+.result-thumb{width:40px;height:40px;border-radius:6px;object-fit:cover;cursor:pointer;flex-shrink:0}
+
+/* Summary */
+.summary{background:var(--sf);border:1px solid rgba(74,222,128,.2);border-radius:var(--r);padding:16px;margin-top:14px;display:none}
+.summary h3{font-size:14px;font-weight:600;color:var(--gr);margin-bottom:6px}
+.summary p{font-size:13px;color:var(--mt);line-height:1.5}
+.summary a{color:var(--ac);text-decoration:none}
+
+.toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--sf2);border:1px solid var(--bd);color:var(--tx);font-size:13px;padding:10px 18px;border-radius:100px;transition:transform .3s cubic-bezier(.34,1.56,.64,1);z-index:999;pointer-events:none;white-space:nowrap}
+.toast.show{transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="logo">photo<span>.</span>tryon</div>
+  <div class="nav-links">
+    <a href="index.html" class="nav-link">загрузить</a>
+    <a href="gallery.html" class="nav-link">галерея</a>
+  </div>
+</header>
+
+<!-- 1. API Key -->
+<div class="section">
+  <div class="section-title">Replicate API Token</div>
+  <div class="key-row">
+    <input type="password" class="key-input" id="api-key" placeholder="r8_xxxxxxxxxxxxxxxxxxxxxxxx">
+    <button class="key-save" onclick="saveKey()">Сохранить</button>
+  </div>
+  <div class="key-hint">
+    Получить токен: <a href="https://replicate.com/account/api-tokens" target="_blank">replicate.com → API tokens</a>
+    · $5 бесплатно при регистрации (~200 генераций)
+  </div>
+</div>
+
+<!-- 2. Mannequin -->
+<div class="section">
+  <div class="section-title">Манекен (158 см / 50 кг)</div>
+  <div class="mannequin-grid">
+    <div class="mcard active" onclick="selectMannequin(0,this)" data-url="https://images.unsplash.com/photo-1520013817300-1f4c1cb245ef?w=768&q=90">
+      <img src="https://images.unsplash.com/photo-1520013817300-1f4c1cb245ef?w=200&q=80" alt="">
+      <div class="mcard-label">Светлый фон</div>
+    </div>
+    <div class="mcard" onclick="selectMannequin(1,this)" data-url="https://images.unsplash.com/photo-1554568218-0f1715e72254?w=768&q=90">
+      <img src="https://images.unsplash.com/photo-1554568218-0f1715e72254?w=200&q=80" alt="">
+      <div class="mcard-label">Нейтральная</div>
+    </div>
+    <div class="mcard" onclick="selectMannequin(2,this)" data-url="https://images.unsplash.com/photo-1619535860434-cf9b902a1a93?w=768&q=90">
+      <img src="https://images.unsplash.com/photo-1619535860434-cf9b902a1a93?w=200&q=80" alt="">
+      <div class="mcard-label">Студия</div>
+    </div>
+  </div>
+  <div class="custom-url-row">
+    <input class="custom-url-input" id="custom-mannequin" placeholder="Или вставь свой URL фото манекена..." oninput="customMannequin(this.value)">
+  </div>
+</div>
+
+<!-- 3. Mode -->
+<div class="section">
+  <div class="section-title">Режим генерации</div>
+  <div class="mode-btns">
+    <button class="mode-btn active" id="mode-base" onclick="setMode('base')">
+      <span class="mode-title">👗 Только манекен</span>
+      <span class="mode-sub">1 запрос на фото<br>~$0.025 каждый</span>
+    </button>
+    <button class="mode-btn" id="mode-bottoms" onclick="setMode('bottoms')">
+      <span class="mode-title">👕+👖 С вариантами низа</span>
+      <span class="mode-sub">до 9 запросов на топ<br>двухшаговый процесс</span>
+    </button>
+  </div>
+
+  <div id="bottoms-picker" style="display:none">
+    <div style="font-size:12px;color:var(--mt);margin-top:12px;margin-bottom:6px">Выбери варианты низа:</div>
+    <div class="bottom-chips">
+      <button class="chip active" onclick="toggleBottom('jeans',this)">👖 Джинсы</button>
+      <button class="chip active" onclick="toggleBottom('shorts',this)">🩳 Шорты</button>
+      <button class="chip active" onclick="toggleBottom('skirt',this)">👗 Юбка</button>
+      <button class="chip active" onclick="toggleBottom('pants',this)">👔 Брюки</button>
+    </div>
+  </div>
+
+  <div class="steps-row">
+    <label>Качество</label>
+    <input type="range" id="steps" min="20" max="40" value="30" step="5" oninput="document.getElementById('steps-val').textContent=this.value+' шагов'">
+    <span class="steps-val" id="steps-val">30 шагов</span>
+  </div>
+</div>
+
+<!-- 4. Run -->
+<button class="run-btn" id="run-btn" onclick="startTryon()">
+  ✨ Запустить примерку
+</button>
+
+<!-- Progress -->
+<div class="progress" id="progress">
+  <div class="progress-title">
+    Обработка
+    <span class="p-count" id="p-count">0 / 0</span>
+  </div>
+  <div class="jobs" id="jobs"></div>
+</div>
+
+<!-- Summary -->
+<div class="summary" id="summary">
+  <h3>✅ Готово!</h3>
+  <p id="summary-text"></p>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const SUPABASE_URL = 'https://fnwcuhwtforhmhybvscm.supabase.co'
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZud2N1aHd0Zm9yaG1oeWJ2c2NtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3Mjg0MzcsImV4cCI6MjA5MDMwNDQzN30.96-koYH8PvMai0sefi19emXskBYBPYJ-I9IFKWK7N6M'
+const EDGE_FN = `${SUPABASE_URL}/functions/v1/tryon`
+const BUCKET = 'photos'
+const SRC = 'compressed'
+
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
+
+let mannequinUrl = document.querySelector('.mcard.active').dataset.url
+let mode = 'base'
+let selectedBottoms = new Set(['jeans','shorts','skirt','pants'])
+let running = false
+
+// ── Key ──────────────────────────────────────────────────────
+function saveKey() {
+  const val = document.getElementById('api-key').value.trim()
+  if (!val) { toast('Введи токен'); return }
+  localStorage.setItem('replicate_key', val)
+  toast('Токен сохранён ✓')
+}
+window.addEventListener('load', () => {
+  const saved = localStorage.getItem('replicate_key')
+  if (saved) document.getElementById('api-key').value = saved
+})
+
+// ── Mannequin ─────────────────────────────────────────────────
+function selectMannequin(i, el) {
+  document.querySelectorAll('.mcard').forEach(c => c.classList.remove('active'))
+  el.classList.add('active')
+  mannequinUrl = el.dataset.url
+  document.getElementById('custom-mannequin').value = ''
+}
+function customMannequin(url) {
+  if (url.trim()) {
+    document.querySelectorAll('.mcard').forEach(c => c.classList.remove('active'))
+    mannequinUrl = url.trim()
+  }
+}
+
+// ── Mode ──────────────────────────────────────────────────────
+function setMode(m) {
+  mode = m
+  document.getElementById('mode-base').classList.toggle('active', m === 'base')
+  document.getElementById('mode-bottoms').classList.toggle('active', m === 'bottoms')
+  document.getElementById('bottoms-picker').style.display = m === 'bottoms' ? 'block' : 'none'
+}
+function toggleBottom(name, el) {
+  if (selectedBottoms.has(name)) { selectedBottoms.delete(name); el.classList.remove('active') }
+  else { selectedBottoms.add(name); el.classList.add('active') }
+}
+
+// ── Utils ─────────────────────────────────────────────────────
+function toast(m, d=2500) {
+  const t = document.getElementById('toast')
+  t.textContent = m; t.classList.add('show')
+  setTimeout(() => t.classList.remove('show'), d)
+}
+function pubUrl(path) {
+  return `${SUPABASE_URL}/storage/v1/object/public/${BUCKET}/${path}`
+}
+function isTops(name) {
+  const n = name.toLowerCase()
+  for (const k of ['pant','jean','skirt','short','trouser','штан','юбк','шорт','джинс','dress','платье','комбинезон']) {
+    if (n.includes(k)) return false
+  }
+  return true
+}
+
+// ── Main ──────────────────────────────────────────────────────
+async function startTryon() {
+  if (running) return
+
+  const apiKey = document.getElementById('api-key').value.trim()
+    || localStorage.getItem('replicate_key') || ''
+  if (!apiKey) { toast('Сначала введи Replicate токен!', 3000); return }
+
+  // Загружаем список фото
+  const { data, error } = await sb.storage.from(BUCKET).list(SRC, {
+    limit: 1000, sortBy: { column: 'created_at', order: 'desc' }
+  })
+  if (error || !data) { toast('Ошибка загрузки списка фото'); return }
+
+  const files = data.filter(f => f.id && f.name.match(/\.(jpg|jpeg|png|webp)$/i))
+  if (!files.length) { toast('Нет фото в compressed/'); return }
+
+  // Строим очередь задач
+  const steps = parseInt(document.getElementById('steps').value)
+  const tasks = []
+
+  for (const f of files) {
+    // Базовый вариант
+    tasks.push({ filename: f.name, mode: 'base', label: f.name, thumb: pubUrl(`${SRC}/${f.name}`) })
+
+    // Варианты с низом (только для топов)
+    if (mode === 'bottoms' && isTops(f.name)) {
+      for (const bottom of selectedBottoms) {
+        tasks.push({
+          filename: f.name, mode: 'with_bottom', bottom,
+          label: `${f.name} + ${bottom}`,
+          thumb: pubUrl(`${SRC}/${f.name}`)
+        })
+      }
+    }
+  }
+
+  if (!tasks.length) { toast('Нет задач для обработки'); return }
+
+  // Оцениваем стоимость
+  const cost = (tasks.length * 0.025).toFixed(2)
+  if (!confirm(`Будет выполнено ${tasks.length} генераций (~$${cost}).\nПродолжить?`)) return
+
+  running = true
+  document.getElementById('run-btn').disabled = true
+  document.getElementById('progress').style.display = 'block'
+  document.getElementById('summary').style.display = 'none'
+  document.getElementById('jobs').innerHTML = ''
+
+  // Рендерим задачи
+  const jobEls = {}
+  for (const task of tasks) {
+    const id = `${task.filename}_${task.mode}_${task.bottom||''}`
+    const el = document.createElement('div')
+    el.className = 'job'
+    el.id = `job-${id}`
+    el.innerHTML = `
+      <img class="job-thumb" src="${task.thumb}" alt="">
+      <div class="job-info">
+        <div class="job-name">${task.label}</div>
+        <div class="job-status pending" id="st-${id}">в очереди</div>
+      </div>
+      <div class="dot-wait" id="ic-${id}"></div>
+    `
+    document.getElementById('jobs').appendChild(el)
+    jobEls[id] = el
+  }
+
+  let done = 0, failed = 0
+  updateCount(done + failed, tasks.length)
+
+  // Выполняем последовательно (Replicate не любит много параллельных)
+  for (const task of tasks) {
+    const id = `${task.filename}_${task.mode}_${task.bottom||''}`
+    const stEl = document.getElementById(`st-${id}`)
+    const icEl = document.getElementById(`ic-${id}`)
+    const jobEl = document.getElementById(`job-${id}`)
+
+    jobEl.classList.add('running')
+    stEl.className = 'job-status running'
+    stEl.textContent = task.mode === 'with_bottom' ? 'шаг 1/2: примеряем низ...' : 'генерируем...'
+    icEl.outerHTML = `<div class="spin" id="ic-${id}"></div>`
+
+    try {
+      const resp = await fetch(EDGE_FN, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-replicate-token': apiKey,  // передаём токен в заголовке
+        },
+        body: JSON.stringify({
+          mode: task.mode,
+          filename: task.filename,
+          bottom: task.bottom,
+          mannequin_url: mannequinUrl,
+          steps,
+          replicate_token: apiKey,  // и в теле на всякий случай
+        })
+      })
+
+      const result = await resp.json()
+
+      if (result.ok && result.url) {
+        done++
+        jobEl.classList.remove('running')
+        jobEl.classList.add('done')
+        stEl.className = 'job-status done'
+        stEl.textContent = '✓ готово'
+        document.getElementById(`ic-${id}`).outerHTML =
+          `<img class="result-thumb" src="${result.url}" onclick="window.open('${result.url}')" title="Открыть результат">`
+      } else {
+        throw new Error(result.error || 'Unknown error')
+      }
+    } catch (err) {
+      failed++
+      jobEl.classList.remove('running')
+      jobEl.classList.add('error')
+      stEl.className = 'job-status error'
+      stEl.textContent = '✗ ' + (err.message || 'ошибка').slice(0, 50)
+      document.getElementById(`ic-${id}`).outerHTML = `<div class="dot-err" id="ic-${id}"></div>`
+    }
+
+    updateCount(done + failed, tasks.length)
+  }
+
+  // Итог
+  running = false
+  document.getElementById('run-btn').disabled = false
+  document.getElementById('summary').style.display = 'block'
+  document.getElementById('summary-text').innerHTML =
+    `Успешно: <strong>${done}</strong>, ошибок: <strong>${failed}</strong>.<br>
+     Результаты видны в <a href="gallery.html">галерее</a> в папке <em>tryon</em>.`
+
+  toast(done > 0 ? `${done} фото готово!` : 'Завершено с ошибками', 4000)
+}
+
+function updateCount(done, total) {
+  document.getElementById('p-count').textContent = `${done} / ${total}`
+}
+</script>
+</body>
+</html>
