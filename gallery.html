@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Галерея фото</title>
+<title>Галерея · Try-On</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root{--bg:#0a0a0a;--sf:#141414;--sf2:#1c1c1c;--bd:#2a2a2a;--ac:#e8ff6b;--adim:rgba(232,255,107,.1);--tx:#f0f0f0;--mt:#666;--r:12px;--gr:#4ade80;--rd:#f87171}
@@ -13,27 +13,40 @@ header{display:flex;justify-content:space-between;align-items:center;max-width:1
 .logo{font-size:15px;font-weight:600}.logo span{color:var(--ac)}
 .header-right{display:flex;gap:8px;align-items:center}
 .upload-link{font-size:12px;color:var(--ac);text-decoration:none;border:1px solid var(--ac);padding:5px 12px;border-radius:100px;opacity:.8}
-.upload-link:hover{opacity:1}
 .delete-all-btn{font-size:12px;color:var(--rd);border:1px solid rgba(248,113,113,.3);background:transparent;padding:5px 12px;border-radius:100px;cursor:pointer}
 .delete-all-btn:hover{background:rgba(248,113,113,.1)}
-.toolbar{max-width:1200px;margin:0 auto 20px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+
+/* Toolbar */
+.toolbar{max-width:1200px;margin:0 auto 16px;display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .filter-btn{padding:5px 14px;border-radius:100px;border:1px solid var(--bd);background:transparent;color:var(--mt);font-size:12px;cursor:pointer;transition:all .2s}
 .filter-btn.active{background:var(--adim);border-color:var(--ac);color:var(--ac)}
 .count{margin-left:auto;background:var(--sf2);border:1px solid var(--bd);padding:4px 12px;border-radius:100px;font-size:12px;color:var(--mt)}
-.storage-bar{max-width:1200px;margin:0 auto 20px;display:flex;align-items:center;gap:10px;font-size:12px;color:var(--mt)}
-.bar-track{flex:1;height:4px;background:var(--sf2);border-radius:2px;overflow:hidden}
-.bar-fill{height:100%;background:var(--ac);border-radius:2px;transition:width .5s}
-.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:10px;max-width:1200px;margin:0 auto}
-.card{background:var(--sf);border:1px solid var(--bd);border-radius:var(--r);overflow:hidden;position:relative;transition:border-color .2s}
-.card:hover{border-color:#444}
+
+/* Try-On bar — появляется когда выбраны фото */
+.tryon-bar{max-width:1200px;margin:0 auto 16px;background:var(--sf);border:1px solid rgba(232,255,107,.25);border-radius:var(--r);padding:14px 16px;display:none;gap:12px;flex-wrap:wrap;align-items:flex-end}
+.tryon-bar.show{display:flex}
+.bar-info{font-size:13px;font-weight:500;color:var(--ac);white-space:nowrap;padding-top:6px}
+.bar-prompt{flex:1;min-width:200px;display:flex;flex-direction:column;gap:6px}
+.bar-prompt label{font-size:11px;color:var(--mt);font-weight:600;letter-spacing:.06em;text-transform:uppercase}
+.prompt-input{background:var(--sf2);border:1px solid var(--bd);border-radius:8px;padding:9px 12px;color:var(--tx);font-size:13px;width:100%;resize:none;height:60px;font-family:inherit}
+.prompt-input:focus{outline:none;border-color:var(--ac)}
+.bar-actions{display:flex;flex-direction:column;gap:6px;flex-shrink:0}
+.run-btn{padding:10px 20px;background:var(--ac);color:#0a0a0a;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;white-space:nowrap;display:flex;align-items:center;gap:6px}
+.run-btn:disabled{opacity:.4;cursor:not-allowed}
+.clear-sel-btn{padding:8px 14px;background:transparent;color:var(--mt);border:1px solid var(--bd);border-radius:10px;font-size:12px;cursor:pointer;text-align:center}
+
+/* Grid */
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;max-width:1200px;margin:0 auto}
+.card{background:var(--sf);border:1.5px solid var(--bd);border-radius:var(--r);overflow:hidden;position:relative;cursor:pointer;transition:border-color .15s,transform .1s}
+.card:hover{border-color:#555}
+.card.selected{border-color:var(--ac);box-shadow:0 0 0 2px var(--adim)}
 .card:hover .card-actions{opacity:1}
-.card img.thumb{width:100%;aspect-ratio:1;object-fit:cover;display:block;background:var(--sf2);cursor:pointer}
-.card-actions{position:absolute;top:6px;right:6px;display:flex;gap:5px;opacity:0;transition:opacity .2s}
-.action-btn{width:30px;height:30px;border-radius:50%;background:rgba(0,0,0,.75);border:1px solid rgba(255,255,255,.1);color:#fff;font-size:13px;cursor:pointer;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(4px);transition:background .15s}
-.action-btn.tryon{border-color:rgba(232,255,107,.4);color:var(--ac)}
-.action-btn.tryon:hover{background:rgba(232,255,107,.15)}
-.action-btn.del{border-color:rgba(248,113,113,.3);color:var(--rd)}
-.action-btn.del:hover{background:rgba(248,113,113,.15)}
+.card img.thumb{width:100%;aspect-ratio:1;object-fit:cover;display:block;background:var(--sf2)}
+.select-indicator{position:absolute;top:8px;left:8px;width:22px;height:22px;border-radius:50%;background:rgba(0,0,0,.6);border:1.5px solid rgba(255,255,255,.3);display:flex;align-items:center;justify-content:center;font-size:12px;transition:all .15s}
+.card.selected .select-indicator{background:var(--ac);border-color:var(--ac);color:#0a0a0a;font-weight:700}
+.card-actions{position:absolute;top:8px;right:8px;opacity:0;transition:opacity .2s}
+.del-btn{width:26px;height:26px;border-radius:50%;background:rgba(0,0,0,.75);border:1px solid rgba(248,113,113,.3);color:var(--rd);font-size:12px;cursor:pointer;display:flex;align-items:center;justify-content:center}
+.del-btn:hover{background:rgba(248,113,113,.2)}
 .card-info{padding:8px 10px}
 .card-tag{display:inline-block;font-size:10px;padding:2px 6px;border-radius:4px;margin-bottom:3px;font-weight:600}
 .tag-c{background:rgba(232,255,107,.15);color:var(--ac)}
@@ -42,70 +55,47 @@ header{display:flex;justify-content:space-between;align-items:center;max-width:1
 .tag-x{background:rgba(255,255,255,.05);color:var(--mt)}
 .card-size{font-size:11px;color:var(--mt)}
 .card-date{font-size:11px;color:var(--mt);margin-top:1px}
-.empty{text-align:center;padding:80px 20px;color:var(--mt);max-width:1200px;margin:0 auto}
+
+.empty,.loading{text-align:center;padding:80px 20px;color:var(--mt);max-width:1200px;margin:0 auto}
 .empty h2{font-size:18px;font-weight:500;margin-bottom:8px;color:var(--tx)}
-.loading{text-align:center;padding:80px 20px;color:var(--mt);max-width:1200px;margin:0 auto}
 .spin{width:32px;height:32px;border:2px solid #2a2a2a;border-top-color:var(--ac);border-radius:50%;animation:spin .7s linear infinite;margin:0 auto 16px}
 @keyframes spin{to{transform:rotate(360deg)}}
+
 /* Лайтбокс */
 .lightbox{position:fixed;inset:0;background:rgba(0,0,0,.93);display:flex;align-items:center;justify-content:center;z-index:100;padding:20px}
 .lightbox.hidden{display:none}
-.lightbox img{max-width:100%;max-height:90dvh;border-radius:8px;object-fit:contain;display:block}
+.lightbox img{max-width:100%;max-height:90dvh;border-radius:8px;object-fit:contain}
 .lb-close{position:fixed;top:16px;right:20px;font-size:32px;color:#fff;cursor:pointer;opacity:.6;background:none;border:none;line-height:1;padding:4px}
-.lb-close:hover{opacity:1}
-.lb-tryon{position:fixed;top:16px;right:64px;font-size:13px;color:var(--ac);background:rgba(232,255,107,.1);border:1px solid rgba(232,255,107,.3);padding:6px 14px;border-radius:100px;cursor:pointer}
-.lb-tryon:hover{background:rgba(232,255,107,.2)}
-.lb-del{position:fixed;top:16px;right:190px;font-size:13px;color:var(--rd);background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.3);padding:6px 14px;border-radius:100px;cursor:pointer}
-.lb-del:hover{background:rgba(248,113,113,.2)}
+.lb-del{position:fixed;top:16px;right:64px;font-size:13px;color:var(--rd);background:rgba(248,113,113,.1);border:1px solid rgba(248,113,113,.3);padding:6px 14px;border-radius:100px;cursor:pointer}
 .lb-info{position:fixed;bottom:20px;left:50%;transform:translateX(-50%);font-size:12px;color:rgba(255,255,255,.45);white-space:nowrap}
-/* Try-On панель */
-.tryon-panel{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:flex-end;justify-content:center;z-index:200}
-.tryon-panel.hidden{display:none}
-.tryon-sheet{background:var(--sf);border-radius:20px 20px 0 0;width:100%;max-width:520px;padding:24px 20px 32px;max-height:85dvh;overflow-y:auto}
-.sheet-handle{width:36px;height:4px;background:var(--bd);border-radius:2px;margin:0 auto 20px}
-.sheet-title{font-size:16px;font-weight:600;margin-bottom:4px}
-.sheet-sub{font-size:12px;color:var(--mt);margin-bottom:20px}
-.section{margin-bottom:18px}
-.section-label{font-size:11px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;color:var(--mt);margin-bottom:10px}
-/* Превью фото */
-.sel-preview{display:flex;gap:12px;align-items:center;background:var(--sf2);border:1px solid var(--bd);border-radius:10px;padding:10px}
-.sel-preview img{width:56px;height:56px;border-radius:8px;object-fit:cover;flex-shrink:0}
-.sel-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:220px}
-.sel-meta{font-size:11px;color:var(--mt);margin-top:2px}
-/* Манекен превью */
-.mannequin-preview{display:flex;align-items:center;gap:12px;background:var(--sf2);border:1px solid var(--bd);border-radius:10px;padding:10px}
-.mannequin-preview img{width:56px;height:80px;border-radius:8px;object-fit:cover;flex-shrink:0}
-.mannequin-info{font-size:12px;color:var(--mt);line-height:1.6}
-.mannequin-info strong{color:var(--tx);display:block;font-size:13px;margin-bottom:2px}
-/* API ключ */
-.key-row{display:flex;gap:8px}
-.key-input{flex:1;background:var(--sf2);border:1px solid var(--bd);border-radius:8px;padding:9px 12px;color:var(--tx);font-size:13px;font-family:monospace}
-.key-input:focus{outline:none;border-color:var(--ac)}
-.key-save-btn{padding:9px 14px;background:var(--sf2);color:var(--mt);border:1px solid var(--bd);border-radius:8px;font-size:12px;cursor:pointer}
-.key-save-btn:hover{color:var(--tx);border-color:#555}
-/* Шаги */
-.steps-row{display:flex;align-items:center;gap:10px}
-.steps-row label{font-size:12px;color:var(--mt);width:60px;flex-shrink:0}
-.steps-row input[type=range]{flex:1}
-.steps-val{font-size:12px;font-weight:600;color:var(--ac);width:40px;text-align:right;flex-shrink:0}
-/* Кнопки */
-.sheet-btns{display:flex;gap:10px;margin-top:20px}
-.sheet-cancel{flex:1;padding:13px;border:1px solid var(--bd);background:transparent;color:var(--mt);border-radius:12px;font-size:14px;cursor:pointer}
-.sheet-run{flex:2;padding:13px;background:var(--ac);color:#0a0a0a;border:none;border-radius:12px;font-size:14px;font-weight:700;cursor:pointer;display:flex;align-items:center;justify-content:center;gap:8px}
-.sheet-run:disabled{opacity:.4;cursor:not-allowed}
-/* Прогресс */
-.tryon-progress{display:none;margin-top:16px}
-.progress-job{background:var(--sf2);border:1px solid var(--bd);border-radius:10px;padding:12px;display:flex;align-items:center;gap:10px}
-.progress-job.done{border-color:rgba(74,222,128,.3)}
-.progress-job.error{border-color:rgba(248,113,113,.3)}
+
+/* Прогресс панель */
+.progress-panel{position:fixed;bottom:24px;right:24px;background:var(--sf);border:1px solid var(--bd);border-radius:16px;padding:16px 18px;min-width:280px;max-width:360px;z-index:200;display:none;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+.progress-panel.show{display:block}
+.pp-title{font-size:13px;font-weight:600;margin-bottom:12px;display:flex;justify-content:space-between;align-items:center}
+.pp-close{background:none;border:none;color:var(--mt);cursor:pointer;font-size:16px;padding:0}
+.pp-jobs{display:flex;flex-direction:column;gap:8px;max-height:300px;overflow-y:auto}
+.pj{background:var(--sf2);border:1px solid var(--bd);border-radius:10px;padding:10px 12px;display:flex;align-items:center;gap:10px;transition:border-color .2s}
+.pj.done{border-color:rgba(74,222,128,.3)}
+.pj.error{border-color:rgba(248,113,113,.3)}
+.pj.running{border-color:rgba(232,255,107,.3)}
+.pj-thumb{width:36px;height:36px;border-radius:6px;object-fit:cover;flex-shrink:0;background:var(--bg)}
 .pj-info{flex:1;min-width:0}
-.pj-name{font-size:12px;font-weight:500}
+.pj-name{font-size:12px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .pj-status{font-size:11px;margin-top:2px}
-.pj-status.running{color:var(--ac)}
-.pj-status.done{color:var(--gr)}
-.pj-status.error{color:var(--rd)}
+.pj-status.running{color:var(--ac)}.pj-status.done{color:var(--gr)}.pj-status.error{color:var(--rd)}
 .pj-spin{width:14px;height:14px;border:2px solid rgba(232,255,107,.2);border-top-color:var(--ac);border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0}
-.pj-result{width:40px;height:40px;border-radius:6px;object-fit:cover;cursor:pointer;flex-shrink:0}
+.pj-result{width:36px;height:36px;border-radius:6px;object-fit:cover;cursor:pointer;flex-shrink:0}
+
+/* Панель настроек (API key) */
+.settings-bar{max-width:1200px;margin:0 auto 16px;display:flex;align-items:center;gap:8px}
+.key-input{flex:1;max-width:300px;background:var(--sf2);border:1px solid var(--bd);border-radius:8px;padding:7px 12px;color:var(--tx);font-size:12px;font-family:monospace}
+.key-input:focus{outline:none;border-color:var(--ac)}
+.key-label{font-size:12px;color:var(--mt);white-space:nowrap}
+.key-save{padding:7px 14px;background:var(--sf2);border:1px solid var(--bd);border-radius:8px;font-size:12px;color:var(--mt);cursor:pointer}
+.key-save:hover{color:var(--tx)}
+.key-link{font-size:11px;color:var(--ac);text-decoration:none}
+
 /* Модалка */
 .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:300;padding:20px}
 .modal-overlay.hidden{display:none}
@@ -115,8 +105,13 @@ header{display:flex;justify-content:space-between;align-items:center;max-width:1
 .modal-btns{display:flex;gap:10px}
 .modal-cancel{flex:1;padding:11px;border:1px solid var(--bd);background:transparent;color:var(--mt);border-radius:10px;font-size:14px;cursor:pointer}
 .modal-confirm{flex:1;padding:11px;background:rgba(248,113,113,.15);color:var(--rd);border:1px solid rgba(248,113,113,.3);border-radius:10px;font-size:14px;font-weight:600;cursor:pointer}
+
 .toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%) translateY(80px);background:var(--sf2);border:1px solid var(--bd);color:var(--tx);font-size:13px;padding:10px 18px;border-radius:100px;transition:transform .3s cubic-bezier(.34,1.56,.64,1);white-space:nowrap;z-index:999;pointer-events:none}
 .toast.show{transform:translateX(-50%) translateY(0)}
+
+.storage-bar{max-width:1200px;margin:0 auto 16px;display:flex;align-items:center;gap:10px;font-size:12px;color:var(--mt)}
+.bar-track{flex:1;height:4px;background:var(--sf2);border-radius:2px;overflow:hidden}
+.bar-fill{height:100%;background:var(--ac);border-radius:2px;transition:width .5s}
 </style>
 </head>
 <body>
@@ -129,12 +124,34 @@ header{display:flex;justify-content:space-between;align-items:center;max-width:1
   </div>
 </header>
 
+<!-- Gemini API key -->
+<div class="settings-bar">
+  <span class="key-label">Gemini API:</span>
+  <input type="password" class="key-input" id="gemini-key" placeholder="AIza...">
+  <button class="key-save" onclick="saveKey()">Сохранить</button>
+  <a href="https://aistudio.google.com/apikey" target="_blank" class="key-link">Получить ключ →</a>
+</div>
+
+<!-- Фильтры -->
 <div class="toolbar">
   <button class="filter-btn active" onclick="setFilter('all',this)">Все</button>
   <button class="filter-btn" onclick="setFilter('compressed',this)">⚡ Сжатые</button>
   <button class="filter-btn" onclick="setFilter('original',this)">📷 Оригиналы</button>
   <button class="filter-btn" onclick="setFilter('tryon',this)">✨ Try-On</button>
   <span class="count" id="count">...</span>
+</div>
+
+<!-- Try-On панель (появляется при выборе фото) -->
+<div class="tryon-bar" id="tryon-bar">
+  <div class="bar-info" id="bar-info">0 фото выбрано</div>
+  <div class="bar-prompt">
+    <label>Промт для Gemini</label>
+    <textarea class="prompt-input" id="prompt-input" placeholder="Например: надень эту одежду на девушку, заправь в джинсы, покажи спереди на белом фоне...">надень эту одежду на девушку из первого фото, сохрани позу и фон, результат должен выглядеть реалистично</textarea>
+  </div>
+  <div class="bar-actions">
+    <button class="run-btn" id="run-btn" onclick="runTryon()">✨ Примерить</button>
+    <button class="clear-sel-btn" onclick="clearSelection()">Снять выбор</button>
+  </div>
 </div>
 
 <div class="storage-bar" id="storage-bar" style="display:none">
@@ -148,77 +165,18 @@ header{display:flex;justify-content:space-between;align-items:center;max-width:1
 <!-- Лайтбокс -->
 <div class="lightbox hidden" id="lb">
   <button class="lb-close" onclick="closeLb()">×</button>
-  <button class="lb-del" id="lb-del-btn" onclick="deleteCurrent()">🗑 Удалить</button>
-  <button class="lb-tryon" id="lb-tryon-btn" onclick="openTryonFromLb()">✨ Примерить</button>
+  <button class="lb-del" onclick="deleteCurrent()">🗑 Удалить</button>
   <img id="lb-img" src="" alt="">
   <div class="lb-info" id="lb-info"></div>
 </div>
 
-<!-- Try-On панель -->
-<div class="tryon-panel hidden" id="tryon-panel">
-  <div class="tryon-sheet">
-    <div class="sheet-handle"></div>
-    <div class="sheet-title">✨ Virtual Try-On</div>
-    <div class="sheet-sub">Примерка на манекене · 158 см / 50 кг</div>
-
-    <!-- Выбранное фото -->
-    <div class="section">
-      <div class="section-label">Фото одежды</div>
-      <div class="sel-preview">
-        <img id="sel-thumb" src="" alt="">
-        <div>
-          <div class="sel-name" id="sel-name">—</div>
-          <div class="sel-meta" id="sel-meta"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Манекен (фиксированный) -->
-    <div class="section">
-      <div class="section-label">Манекен</div>
-      <div class="mannequin-preview">
-        <img src="https://fnwcuhwtforhmhybvscm.supabase.co/storage/v1/object/public/photos/assets/mannequin.png" alt="mannequin">
-        <div class="mannequin-info">
-          <strong>Манекен</strong>
-          158 см / 50 кг<br>
-          Светлый фон
-        </div>
-      </div>
-    </div>
-
-    <!-- API ключ -->
-    <div class="section">
-      <div class="section-label">Replicate API Token</div>
-      <div class="key-row">
-        <input type="password" class="key-input" id="api-key" placeholder="r8_xxxxxxxxxxxx">
-        <button class="key-save-btn" onclick="saveKey()">Сохранить</button>
-      </div>
-      <div style="font-size:11px;color:var(--mt);margin-top:6px">
-        <a href="https://replicate.com/account/api-tokens" target="_blank" style="color:var(--ac);text-decoration:none">replicate.com</a>
-        → API tokens · ~$0.025 за генерацию
-      </div>
-    </div>
-
-    <!-- Качество -->
-    <div class="section">
-      <div class="section-label">Качество</div>
-      <div class="steps-row">
-        <label>Шаги</label>
-        <input type="range" id="steps" min="20" max="40" value="30" step="5"
-          oninput="document.getElementById('steps-val').textContent=this.value">
-        <span class="steps-val" id="steps-val">30</span>
-      </div>
-    </div>
-
-    <!-- Прогресс -->
-    <div class="tryon-progress" id="tryon-progress"></div>
-
-    <!-- Кнопки -->
-    <div class="sheet-btns" id="sheet-btns">
-      <button class="sheet-cancel" onclick="closeTryon()">Отмена</button>
-      <button class="sheet-run" id="sheet-run" onclick="runTryon()">✨ Примерить</button>
-    </div>
+<!-- Прогресс панель -->
+<div class="progress-panel" id="progress-panel">
+  <div class="pp-title">
+    ✨ Генерация
+    <button class="pp-close" onclick="document.getElementById('progress-panel').classList.remove('show')">×</button>
   </div>
+  <div class="pp-jobs" id="pp-jobs"></div>
 </div>
 
 <!-- Модалка -->
@@ -239,19 +197,25 @@ header{display:flex;justify-content:space-between;align-items:center;max-width:1
 <script>
 const SUPABASE_URL = 'https://fnwcuhwtforhmhybvscm.supabase.co'
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZud2N1aHd0Zm9yaG1oeWJ2c2NtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3Mjg0MzcsImV4cCI6MjA5MDMwNDQzN30.96-koYH8PvMai0sefi19emXskBYBPYJ-I9IFKWK7N6M'
-const EDGE_FN = `${SUPABASE_URL}/functions/v1/tryon`
+const EDGE_FN = `${SUPABASE_URL}/functions/v1/gemini-tryon`
 const BUCKET = 'photos'
+const TEMPLATE_PATH = 'assets/template.jpg' // сюда загрузи шаблон девушки
 
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_KEY)
-let allPhotos = [], currentFilter = 'all', lbCurrent = null, tryonFile = null, tryonRunning = false
+let allPhotos = [], currentFilter = 'all', selected = new Set(), lbCurrent = null
 
 // ── Utils ──────────────────────────────────────────────────────────────────
 function fmt(b){if(!b)return'';b=+b;return b<1024?b+' B':b<1048576?(b/1024).toFixed(1)+' KB':(b/1048576).toFixed(1)+' MB'}
 function fmtDate(s){return new Date(s).toLocaleDateString('ru-RU',{day:'numeric',month:'short'})}
 function getFolder(f){return f._prefix||'root'}
 function getPath(f){return f._prefix?f._prefix+'/'+f.name:f.name}
-function isTops(name){const n=name.toLowerCase();for(const k of['pant','jean','skirt','short','dress','платье','штан','юбк','шорт','джинс'])if(n.includes(k))return false;return true}
 function toast(m,d=2500){const t=document.getElementById('toast');t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),d)}
+function saveKey(){const v=document.getElementById('gemini-key').value.trim();if(v){localStorage.setItem('gemini_key',v);toast('Ключ сохранён ✓')}}
+
+window.addEventListener('load',()=>{
+  const k=localStorage.getItem('gemini_key')
+  if(k)document.getElementById('gemini-key').value=k
+})
 
 // ── Загрузка ──────────────────────────────────────────────────────────────
 async function listFolder(prefix){
@@ -260,14 +224,17 @@ async function listFolder(prefix){
   let files=[]
   for(const item of data){
     if(item.id===null){const sub=await listFolder(prefix?prefix+'/'+item.name:item.name);files=files.concat(sub)}
-    else if(!item.name.startsWith('mannequin'))files.push({...item,_prefix:prefix})
+    else files.push({...item,_prefix:prefix})
   }
   return files
 }
 
 async function load(){
   const files=await listFolder('')
-  allPhotos=files.filter(f=>f.name&&f.name.match(/\.(jpg|jpeg|png|webp|heic|heif)$/i)&&!getPath(f).startsWith('assets/'))
+  allPhotos=files.filter(f=>
+    f.name&&f.name.match(/\.(jpg|jpeg|png|webp|heic|heif)$/i)&&
+    !getPath(f).startsWith('assets/')
+  )
   allPhotos.sort((a,b)=>new Date(b.created_at)-new Date(a.created_at))
   updateStorageBar();render()
 }
@@ -277,11 +244,11 @@ function updateStorageBar(){
   if(total>0){
     document.getElementById('storage-bar').style.display='flex'
     document.getElementById('storage-used').textContent=fmt(total)+' использовано'
-    document.getElementById('bar-fill').style.width=Math.max((total/(1024*1024*1024))*100,0.3)+'%'
+    document.getElementById('bar-fill').style.width=Math.max((total/(1024*1024*1024))*100,.3)+'%'
   }
 }
 
-// ── Рендер ────────────────────────────────────────────────────────────────
+// ── Фильтр и рендер ───────────────────────────────────────────────────────
 function setFilter(f,btn){
   currentFilter=f
   document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'))
@@ -293,7 +260,13 @@ function render(){
   const root=document.getElementById('root')
   const photos=currentFilter==='all'?allPhotos:allPhotos.filter(f=>getFolder(f)===currentFilter)
   document.getElementById('count').textContent=photos.length+' фото'
-  if(!photos.length){root.className='empty';root.innerHTML='<h2>Нет фото</h2><p>В этой категории пока ничего нет</p>';return}
+
+  if(!photos.length){
+    root.className='empty'
+    root.innerHTML='<h2>Нет фото</h2><p>Загрузи фото через страницу загрузки</p>'
+    return
+  }
+
   root.className='grid';root.innerHTML=''
   photos.forEach(f=>{
     const path=getPath(f)
@@ -301,14 +274,17 @@ function render(){
     const folder=getFolder(f)
     const tagClass=folder==='compressed'?'tag-c':folder==='original'?'tag-o':folder==='tryon'?'tag-t':'tag-x'
     const tagLabel=folder==='compressed'?'⚡ сжатое':folder==='original'?'📷 оригинал':folder==='tryon'?'✨ try-on':'📁'
-    const canTryon=folder==='compressed'||folder==='original'||folder==='root'
+    const isSel=selected.has(path)
+
     const card=document.createElement('div')
-    card.className='card'
+    card.className='card'+(isSel?' selected':'')
+    card.dataset.path=path
+    card.onclick=(e)=>{ if(e.target.closest('.del-btn'))return; toggleSelect(path,card,url,f) }
     card.innerHTML=
-      `<img class="thumb" src="${url}" loading="lazy" alt="" onclick="openLb('${url}','${path}',${JSON.stringify(f).replace(/'/g,"&#39;")})">
+      `<img class="thumb" src="${url}" loading="lazy" alt="">
+      <div class="select-indicator">${isSel?'✓':''}</div>
       <div class="card-actions">
-        ${canTryon?`<button class="action-btn tryon" title="Примерить" onclick="openTryon('${path}','${url}',event)">✨</button>`:''}
-        <button class="action-btn del" title="Удалить" onclick="confirmDeleteOne('${path}',event)">✕</button>
+        <button class="del-btn" title="Удалить" onclick="confirmDeleteOne('${path}',event)">✕</button>
       </div>
       <div class="card-info">
         <span class="card-tag ${tagClass}">${tagLabel}</span>
@@ -317,6 +293,121 @@ function render(){
       </div>`
     root.appendChild(card)
   })
+  updateTryonBar()
+}
+
+// ── Выбор фото ────────────────────────────────────────────────────────────
+function toggleSelect(path, card, url, f){
+  // Двойной клик — открыть лайтбокс
+  if(selected.size===0&&!selected.has(path)){
+    // Первый клик — выделяем
+  }
+  if(selected.has(path)){
+    selected.delete(path)
+    card.classList.remove('selected')
+    card.querySelector('.select-indicator').textContent=''
+  } else {
+    selected.add(path)
+    card.classList.add('selected')
+    card.querySelector('.select-indicator').textContent='✓'
+  }
+  updateTryonBar()
+}
+
+function updateTryonBar(){
+  const bar=document.getElementById('tryon-bar')
+  const info=document.getElementById('bar-info')
+  if(selected.size>0){
+    bar.classList.add('show')
+    info.textContent=selected.size+' фото выбрано'
+  } else {
+    bar.classList.remove('show')
+  }
+}
+
+function clearSelection(){
+  selected.clear()
+  document.querySelectorAll('.card.selected').forEach(c=>{
+    c.classList.remove('selected')
+    c.querySelector('.select-indicator').textContent=''
+  })
+  updateTryonBar()
+}
+
+// ── Try-On ────────────────────────────────────────────────────────────────
+async function runTryon(){
+  const geminiKey=(document.getElementById('gemini-key').value.trim()||localStorage.getItem('gemini_key')||'').trim()
+  if(!geminiKey){toast('Введи Gemini API ключ!',3000);return}
+  if(selected.size===0){toast('Выбери хотя бы одно фото');return}
+
+  const prompt=document.getElementById('prompt-input').value.trim()
+  if(!prompt){toast('Введи промт');return}
+
+  localStorage.setItem('gemini_key',geminiKey)
+
+  const paths=[...selected]
+  document.getElementById('run-btn').disabled=true
+
+  const panel=document.getElementById('progress-panel')
+  const jobs=document.getElementById('pp-jobs')
+  panel.classList.add('show')
+
+  // Создаём задачи
+  const jobEls={}
+  for(const path of paths){
+    const fname=path.split('/').pop()
+    const url=sb.storage.from(BUCKET).getPublicUrl(path).data.publicUrl
+    const el=document.createElement('div')
+    el.className='pj running'
+    el.id='pj-'+btoa(path).slice(0,12)
+    el.innerHTML=
+      `<img class="pj-thumb" src="${url}" alt="">
+      <div class="pj-info">
+        <div class="pj-name">${fname}</div>
+        <div class="pj-status running" id="pjs-${el.id}">Отправляем в Gemini...</div>
+      </div>
+      <div class="pj-spin" id="pji-${el.id}"></div>`
+    jobs.prepend(el)
+    jobEls[path]=el.id
+  }
+
+  // Запускаем параллельно (Gemini справляется)
+  await Promise.all(paths.map(async path=>{
+    const jid=jobEls[path]
+    const statusEl=document.getElementById('pjs-'+jid)
+    const iconEl=document.getElementById('pji-'+jid)
+    try{
+      const resp=await fetch(EDGE_FN,{
+        method:'POST',
+        headers:{'Content-Type':'application/json','x-gemini-key':geminiKey},
+        body:JSON.stringify({
+          template_path: TEMPLATE_PATH,
+          garment_path: path,
+          prompt: prompt,
+          gemini_key: geminiKey
+        })
+      })
+      const result=await resp.json()
+      if(result.ok&&result.url){
+        document.getElementById(jid).classList.replace('running','done')
+        statusEl.className='pj-status done'
+        statusEl.textContent='✓ Готово!'
+        iconEl.outerHTML=`<img class="pj-result" src="${result.url}?t=${Date.now()}" onclick="window.open('${result.url}')" title="Открыть">`
+        toast('✨ Готово!')
+      } else {
+        throw new Error(result.error||'Ошибка')
+      }
+    }catch(err){
+      document.getElementById(jid).classList.replace('running','error')
+      statusEl.className='pj-status error'
+      statusEl.textContent='✗ '+(err.message||'ошибка').slice(0,50)
+      iconEl.outerHTML=`<div style="width:8px;height:8px;border-radius:50%;background:var(--rd)"></div>`
+    }
+  }))
+
+  document.getElementById('run-btn').disabled=false
+  clearSelection()
+  setTimeout(()=>load(),1000) // обновляем галерею
 }
 
 // ── Лайтбокс ─────────────────────────────────────────────────────────────
@@ -324,92 +415,11 @@ function openLb(url,path,f){
   lbCurrent={url,path,f}
   document.getElementById('lb-img').src=url
   document.getElementById('lb-info').textContent=f.name+' · '+fmt(f.metadata&&f.metadata.size)
-  const folder=f._prefix||''
-  const canTryon=folder==='compressed'||folder==='original'||folder===''||folder==='root'
-  document.getElementById('lb-tryon-btn').style.display=canTryon?'block':'none'
   document.getElementById('lb').classList.remove('hidden')
 }
-function closeLb(){document.getElementById('lb').classList.add('hidden');document.getElementById('lb-img').src='';lbCurrent=null}
-function openTryonFromLb(){if(!lbCurrent)return;closeLb();openTryon(lbCurrent.path,lbCurrent.url,null)}
+function closeLb(){document.getElementById('lb').classList.add('hidden');lbCurrent=null}
 document.getElementById('lb').addEventListener('click',e=>{if(e.target===e.currentTarget)closeLb()})
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeTryon();closeLb()}})
-
-// ── Try-On ────────────────────────────────────────────────────────────────
-function openTryon(path,thumbUrl,event){
-  if(event)event.stopPropagation()
-  tryonFile={path,thumbUrl}
-  const fname=path.split('/').pop()
-  document.getElementById('sel-thumb').src=thumbUrl
-  document.getElementById('sel-name').textContent=fname
-  document.getElementById('sel-meta').textContent=path.includes('/')?path.split('/')[0]:''
-  const saved=localStorage.getItem('replicate_key')
-  if(saved)document.getElementById('api-key').value=saved
-  document.getElementById('tryon-progress').style.display='none'
-  document.getElementById('tryon-progress').innerHTML=''
-  document.getElementById('sheet-btns').style.display='flex'
-  document.getElementById('sheet-run').disabled=false
-  document.getElementById('sheet-run').textContent='✨ Примерить'
-  document.getElementById('sheet-run').onclick=runTryon
-  tryonRunning=false
-  document.getElementById('tryon-panel').classList.remove('hidden')
-}
-function closeTryon(){if(tryonRunning)return;document.getElementById('tryon-panel').classList.add('hidden')}
-function saveKey(){const v=document.getElementById('api-key').value.trim();if(v){localStorage.setItem('replicate_key',v);toast('Токен сохранён ✓')}}
-
-async function runTryon(){
-  if(tryonRunning||!tryonFile)return
-  const apiKey=(document.getElementById('api-key').value.trim()||localStorage.getItem('replicate_key')||'').trim()
-  if(!apiKey){toast('Введи Replicate API токен!',3000);return}
-  localStorage.setItem('replicate_key',apiKey)
-
-  const fname=tryonFile.path.split('/').pop()
-  const steps=parseInt(document.getElementById('steps').value)
-
-  tryonRunning=true
-  document.getElementById('sheet-run').disabled=true
-  document.getElementById('sheet-btns').style.display='none'
-
-  const prog=document.getElementById('tryon-progress')
-  prog.style.display='block'
-  prog.innerHTML=`
-    <div class="progress-job" id="pj-base">
-      <div class="pj-info">
-        <div class="pj-name">Примерка на манекене</div>
-        <div class="pj-status running" id="pjs-base">Генерируем...</div>
-      </div>
-      <div class="pj-spin" id="pji-base"></div>
-    </div>`
-
-  try{
-    const resp=await fetch(EDGE_FN,{
-      method:'POST',
-      headers:{'Content-Type':'application/json','x-replicate-token':apiKey},
-      body:JSON.stringify({filename:fname,steps,replicate_token:apiKey})
-    })
-    const result=await resp.json()
-    if(result.ok&&result.url){
-      document.getElementById('pj-base').classList.add('done')
-      document.getElementById('pjs-base').className='pj-status done'
-      document.getElementById('pjs-base').textContent='✓ Готово!'
-      document.getElementById('pji-base').outerHTML=`<img class="pj-result" src="${result.url}?t=${Date.now()}" onclick="window.open('${result.url}')" title="Открыть">`
-      toast('Готово! Фото в галерее ✨',3500)
-    }else{
-      throw new Error(result.error||'Ошибка')
-    }
-  }catch(err){
-    document.getElementById('pj-base').classList.add('error')
-    document.getElementById('pjs-base').className='pj-status error'
-    document.getElementById('pjs-base').textContent='✗ '+(err.message||'ошибка').slice(0,60)
-    document.getElementById('pji-base').outerHTML=`<div style="width:8px;height:8px;border-radius:50%;background:var(--rd)"></div>`
-    toast('Ошибка: '+(err.message||'').slice(0,40),4000)
-  }
-
-  tryonRunning=false
-  document.getElementById('sheet-btns').style.display='flex'
-  document.getElementById('sheet-run').disabled=false
-  document.getElementById('sheet-run').textContent='Закрыть'
-  document.getElementById('sheet-run').onclick=()=>{closeTryon();load()}
-}
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeModal();closeLb()}})
 
 // ── Удаление ──────────────────────────────────────────────────────────────
 function confirmDeleteOne(path,event){
@@ -418,24 +428,24 @@ function confirmDeleteOne(path,event){
 }
 function deleteCurrent(){
   if(!lbCurrent)return
-  const path=lbCurrent.path
-  showModal('Удалить фото?','Это действие нельзя отменить.',async()=>{closeLb();await deleteFile(path)})
+  showModal('Удалить фото?','Это действие нельзя отменить.',async()=>{closeLb();await deleteFile(lbCurrent.path)})
 }
 async function deleteFile(path){
   const{error}=await sb.storage.from(BUCKET).remove([path])
   if(error){toast('Ошибка: '+error.message,3500);return}
+  selected.delete(path)
   allPhotos=allPhotos.filter(f=>getPath(f)!==path)
   updateStorageBar();render();toast('Фото удалено')
 }
 function confirmDeleteAll(){
   if(!allPhotos.length){toast('Нет фото');return}
-  showModal('Удалить все фото?',`Будет удалено ${allPhotos.length} фото. Нельзя отменить.`,async()=>{
+  showModal('Удалить все фото?',`Будет удалено ${allPhotos.length} фото.`,async()=>{
     const paths=allPhotos.map(f=>getPath(f))
     for(let i=0;i<paths.length;i+=100){
       const{error}=await sb.storage.from(BUCKET).remove(paths.slice(i,i+100))
       if(error){toast('Ошибка: '+error.message,3500);return}
     }
-    allPhotos=[];updateStorageBar();render();toast('Все фото удалены')
+    selected.clear();allPhotos=[];updateStorageBar();render();toast('Все фото удалены')
   })
 }
 
