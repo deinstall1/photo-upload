@@ -197,7 +197,8 @@ header{display:flex;justify-content:space-between;align-items:center;max-width:1
 <script>
 const SUPABASE_URL = 'https://fnwcuhwtforhmhybvscm.supabase.co'
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImZud2N1aHd0Zm9yaG1oeWJ2c2NtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ3Mjg0MzcsImV4cCI6MjA5MDMwNDQzN30.96-koYH8PvMai0sefi19emXskBYBPYJ-I9IFKWK7N6M'
-const EDGE_FN = `${SUPABASE_URL}/functions/v1/gemini-tryon`
+const SAVE_FN = `${SUPABASE_URL}/functions/v1/gemini-tryon`
+const GEMINI_MODEL = 'gemini-3.1-flash-image-preview'
 const BUCKET = 'photos'
 const TEMPLATE_PATH = 'assets/template.jpg' // сюда загрузи шаблон девушки
 
@@ -335,6 +336,33 @@ function clearSelection(){
 }
 
 // ── Try-On ────────────────────────────────────────────────────────────────
+// Скачиваем файл из Supabase и конвертируем в base64
+async function fileToB64(path) {
+  const url = sb.storage.from(BUCKET).getPublicUrl(path).data.publicUrl
+  const resp = await fetch(url)
+  if (!resp.ok) throw new Error(`download ${path}: ${resp.status}`)
+  const buf = await resp.arrayBuffer()
+  const bytes = new Uint8Array(buf)
+  let bin = ''
+  for (let i = 0; i < bytes.length; i++) bin += String.fromCharCode(bytes[i])
+  return { b64: btoa(bin), mime: resp.headers.get('content-type') || 'image/jpeg' }
+}
+
+// Сохраняем результат в Supabase через Edge Function
+async function saveResult(geminiKey, resultB64, resultMime, garmentPath) {
+  const resp = await fetch(SAVE_FN, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      result_b64: resultB64,
+      result_mime: resultMime,
+      garment_path: garmentPath,
+      gemini_key: geminiKey
+    })
+  })
+  return resp.json()
+}
+
 async function runTryon(){
   const geminiKey=(document.getElementById('gemini-key').value.trim()||localStorage.getItem('gemini_key')||'').trim()
   if(!geminiKey){toast('Введи Gemini API ключ!',3000);return}
@@ -352,7 +380,6 @@ async function runTryon(){
   const jobs=document.getElementById('pp-jobs')
   panel.classList.add('show')
 
-  // Создаём задачи
   const jobEls={}
   for(const path of paths){
     const fname=path.split('/').pop()
@@ -364,50 +391,85 @@ async function runTryon(){
       `<img class="pj-thumb" src="${url}" alt="">
       <div class="pj-info">
         <div class="pj-name">${fname}</div>
-        <div class="pj-status running" id="pjs-${el.id}">Отправляем в Gemini...</div>
+        <div class="pj-status running" id="pjs-${el.id}">Загружаем изображения...</div>
       </div>
       <div class="pj-spin" id="pji-${el.id}"></div>`
     jobs.prepend(el)
     jobEls[path]=el.id
   }
 
-  // Запускаем параллельно (Gemini справляется)
-  await Promise.all(paths.map(async path=>{
+  // Обрабатываем последовательно
+  for(const path of paths){
     const jid=jobEls[path]
     const statusEl=document.getElementById('pjs-'+jid)
     const iconEl=document.getElementById('pji-'+jid)
     try{
-      const resp=await fetch(EDGE_FN,{
-        method:'POST',
-        headers:{'Content-Type':'application/json','x-gemini-key':geminiKey},
-        body:JSON.stringify({
-          template_path: TEMPLATE_PATH,
-          garment_path: path,
-          prompt: prompt,
-          gemini_key: geminiKey
-        })
-      })
-      const result=await resp.json()
-      if(result.ok&&result.url){
+      // Загружаем оба изображения прямо в браузере
+      statusEl.textContent='Загружаем шаблон и одежду...'
+      const [template, garment] = await Promise.all([
+        fileToB64(TEMPLATE_PATH),
+        fileToB64(path)
+      ])
+
+      // Вызываем Gemini напрямую из браузера
+      statusEl.textContent='Генерируем в Gemini...'
+      const gemResp = await fetch(
+        `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent?key=${geminiKey}`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            system_instruction: { parts: [{ text: 'You are a fashion photo editor. You MUST output a photorealistic image. Take the person from image 1 and dress them in the clothing from image 2. Output ONLY the final image.' }] },
+            contents: [{
+              role: 'user',
+              parts: [
+                { text: prompt },
+                { inline_data: { mime_type: template.mime, data: template.b64 } },
+                { inline_data: { mime_type: garment.mime, data: garment.b64 } },
+              ]
+            }],
+            generationConfig: { responseModalities: ['IMAGE', 'TEXT'], temperature: 1.0 }
+          })
+        }
+      )
+
+      const gemData = await gemResp.json()
+      if (!gemResp.ok) throw new Error(`Gemini ${gemResp.status}: ${JSON.stringify(gemData).slice(0,200)}`)
+
+      const parts = gemData?.candidates?.[0]?.content?.parts ?? []
+      const finishReason = gemData?.candidates?.[0]?.finishReason
+      let resultB64 = '', resultMime = 'image/jpeg'
+      for(const p of parts){
+        if(p.inline_data?.data){ resultB64=p.inline_data.data; resultMime=p.inline_data.mime_type||'image/jpeg'; break }
+      }
+      if(!resultB64){
+        const txt = parts.filter(p=>p.text).map(p=>p.text).join(' ')
+        throw new Error(`No image. finish=${finishReason} text=${txt.slice(0,100)}`)
+      }
+
+      // Сохраняем через Edge Function
+      statusEl.textContent='Сохраняем результат...'
+      const saveResp = await saveResult(geminiKey, resultB64, resultMime, path)
+      if(saveResp.ok && saveResp.url){
         document.getElementById(jid).classList.replace('running','done')
         statusEl.className='pj-status done'
         statusEl.textContent='✓ Готово!'
-        iconEl.outerHTML=`<img class="pj-result" src="${result.url}?t=${Date.now()}" onclick="window.open('${result.url}')" title="Открыть">`
+        iconEl.outerHTML=`<img class="pj-result" src="${saveResp.url}?t=${Date.now()}" onclick="window.open('${saveResp.url}')" title="Открыть">`
         toast('✨ Готово!')
       } else {
-        throw new Error(result.error||'Ошибка')
+        throw new Error(saveResp.error||'Ошибка сохранения')
       }
     }catch(err){
       document.getElementById(jid).classList.replace('running','error')
       statusEl.className='pj-status error'
-      statusEl.textContent='✗ '+(err.message||'ошибка').slice(0,50)
+      statusEl.textContent='✗ '+(err.message||'ошибка').slice(0,60)
       iconEl.outerHTML=`<div style="width:8px;height:8px;border-radius:50%;background:var(--rd)"></div>`
     }
-  }))
+  }
 
   document.getElementById('run-btn').disabled=false
   clearSelection()
-  setTimeout(()=>load(),1000) // обновляем галерею
+  setTimeout(()=>load(),1000)
 }
 
 // ── Лайтбокс ─────────────────────────────────────────────────────────────
